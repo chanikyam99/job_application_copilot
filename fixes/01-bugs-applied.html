@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 · P0 Bugs Fixed — Fixes Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html">🏠 Overview</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="00-getting-started.html">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html" class="active">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html">03 · Still To Do Manually</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 01</div>
+    <h1 class="page-title">P0 Bugs — Already Fixed</h1>
+    <p class="page-subtitle">6 runtime crashes were silently breaking the app. Every one has been fixed directly in the source files. This page explains what was wrong and what changed so you can verify on the other laptop.</p>
+  </div>
+
+  <div class="done-box">
+    <div class="done-label">✅ All applied — nothing to re-do</div>
+    <p>These changes are already in <code>frontend/js/api.js</code> and <code>frontend/application.html</code>. If you copied/cloned this repo, they are already in place. Just read this page to understand what was fixed and why.</p>
+  </div>
+
+  <!-- BUG 1 -->
+  <h2><span class="step-num">1</span> api.js — <code>getBlob</code> method was missing</h2>
+  <p><strong>File:</strong> <code>frontend/js/api.js</code></p>
+  <p><strong>Symptom:</strong> Clicking "Download .docx" threw <code>TypeError: api.getBlob is not a function</code>. The download button did nothing.</p>
+  <p><strong>Root cause:</strong> <code>application.html</code> called <code>api.getBlob(...)</code> but the <code>api</code> object in <code>api.js</code> only had <code>get</code>, <code>post</code>, <code>patch</code>, <code>delete</code>, <code>postForm</code>. The regular <code>api.get()</code> calls <code>res.json()</code> which fails on binary (.docx) responses — a separate method is needed to return the raw <code>Blob</code>.</p>
+
+  <p><strong>What was added</strong> at the bottom of the <code>api</code> export object in <code>api.js</code>:</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/js/api.js — new method added <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// ADDED: For binary file downloads (.docx, PDF).
+// The regular get() calls res.json() which fails on binary responses.
+// getBlob() returns the raw Blob so the caller can create an object URL for download.
+getBlob: async (path) => {
+  const headers = {};
+  const token = auth.getToken();
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(`${BASE_URL}${path}`, { method: 'GET', headers });
+  if (res.status === 401) {
+    auth.clear();
+    window.location.href = 'index.html';
+    return;
+  }
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.detail || `HTTP ${res.status}`);
+  }
+  return res.blob();
+},</code></pre>
+  </div>
+
+  <!-- BUG 2 -->
+  <h2><span class="step-num">2</span> Status update URL was wrong — always 404</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Symptom:</strong> Changing the status dropdown (Not Applied → Applied etc.) appeared to do nothing. The status never saved.</p>
+  <p><strong>Root cause:</strong> The frontend called <code>PATCH /applications/5</code> but the backend endpoint is at <code>PATCH /applications/5/status</code>. The missing <code>/status</code> suffix caused a 405 Method Not Allowed.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — status event listener <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// BEFORE (broken — wrong URL, no /status suffix):
+await api.patch(`/applications/${appId}`, { status: e.target.value });
+
+// AFTER (fixed):
+// BUG FIX: was /applications/${appId} — backend endpoint is /applications/{id}/status
+await api.patch(`/applications/${appId}/status`, { status: e.target.value });</code></pre>
+  </div>
+
+  <!-- BUG 3 -->
+  <h2><span class="step-num">3</span> Cover letter download URL was wrong — always 404</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Symptom:</strong> After fixing Bug 1, clicking "Download .docx" would throw a 404 error.</p>
+  <p><strong>Root cause:</strong> Frontend fetched <code>/applications/5/cover-letter</code> but the backend serves it at <code>/applications/5/download/cover-letter</code>. The <code>/download</code> prefix was missing.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — download button <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// BEFORE (broken — wrong URL):
+const blob = await api.getBlob(`/applications/${appId}/cover-letter`);
+
+// AFTER (fixed):
+// BUG FIX 1: URL was /cover-letter — backend serves at /download/cover-letter
+// BUG FIX 2: api.getBlob did not exist — now added to api.js
+const blob = await api.getBlob(`/applications/${appId}/download/cover-letter`);</code></pre>
+  </div>
+
+  <!-- BUG 4 -->
+  <h2><span class="step-num">4</span> Regenerate — URL format wrong (query param vs path param)</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Symptom:</strong> All three "↺ Regenerate" buttons (Resume, Cover Letter, Interview) showed a toast but the content never updated — the API returned 422 Unprocessable Entity.</p>
+  <p><strong>Root cause:</strong> Frontend sent <code>POST /applications/5/regenerate?section=resume</code> (query string) but the backend endpoint is <code>POST /applications/5/regenerate/{section}</code> (path parameter). FastAPI didn't find the <code>{section}</code> path segment and returned 422.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — regenerate function <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// BEFORE (broken — query param, not path param):
+const data = await api.post(`/applications/${appId}/regenerate?section=${section}`, {});
+
+// AFTER (fixed):
+// BUG FIX: was ?section=X (query param) — backend expects /{section} (path param)
+const data = await api.post(`/applications/${appId}/regenerate/${section}`, {});</code></pre>
+  </div>
+
+  <!-- BUG 5 -->
+  <h2><span class="step-num">5</span> Regenerate — section names didn't match the backend</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Symptom:</strong> Even if the URL were fixed, Resume and Interview regenerate would return HTTP 400 "Invalid section".</p>
+  <p><strong>Root cause:</strong> The frontend event listeners passed <code>'resume_rewrite'</code> and <code>'interview_qa'</code> as the section name. The backend's <code>regenerate_section</code> endpoint only accepts: <code>fit_analysis</code>, <code>resume</code>, <code>cover_letter</code>, <code>interview</code>. The longer names were rejected with a 400.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — regenerate event listeners <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// BEFORE (broken — wrong section names):
+document.getElementById('regen-resume').addEventListener('click',
+  () => regenerate('resume_rewrite', renderResume));      // 400: invalid section
+document.getElementById('regen-interview').addEventListener('click',
+  () => regenerate('interview_qa', renderInterview));     // 400: invalid section
+
+// AFTER (fixed — names must match the backend path param):
+// BUG FIX: 'resume_rewrite' → 'resume',  'interview_qa' → 'interview'
+document.getElementById('regen-resume').addEventListener('click',
+  () => regenerate('resume', renderResume));
+document.getElementById('regen-interview').addEventListener('click',
+  () => regenerate('interview', renderInterview));</code></pre>
+  </div>
+
+  <!-- BUG 6 -->
+  <h2><span class="step-num">6</span> Regenerate — response data access was wrong (always undefined)</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Symptom:</strong> Even if all previous bugs were fixed, after regenerating, the tab would go blank or show stale content.</p>
+  <p><strong>Root cause:</strong> The regenerate endpoint returns the full <code>ApplicationOut</code> object — the draft is nested at <code>data.draft.resume_rewrite</code>. The old code did <code>renderFn(data[section])</code> which would be <code>data['resume_rewrite']</code> → <code>undefined</code> (that field doesn't exist at the top level). Additionally, the draft field names differ from the backend section names (e.g. path param <code>'resume'</code> → field <code>draft.resume_rewrite</code>), so a mapping table is needed.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — full fixed regenerate function <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// Maps the backend path-param section name → Draft model field name.
+// The backend uses short names in the URL; the DB field names differ.
+const SECTION_FIELD = {
+  fit_analysis: 'fit_analysis',   // stores JSON
+  resume:       'resume_rewrite', // stores JSON {text, changes}
+  cover_letter: 'cover_letter',   // stores plain text
+  interview:    'interview_qa',   // stores JSON array
+};
+
+async function regenerate(section, renderFn) {
+  try {
+    toast('Regenerating...', 'info');
+    // FIX 1: path param not query param
+    // FIX 2: data.draft[field] not data[section]
+    // FIX 3: section names match backend values
+    const data  = await api.post(`/applications/${appId}/regenerate/${section}`, {});
+    const field = SECTION_FIELD[section];
+    let value   = data.draft ? data.draft[field] : null;
+    // Parse JSON strings — same logic as renderAllTabs()
+    if ((field === 'fit_analysis' || field === 'resume_rewrite' || field === 'interview_qa')
+        && typeof value === 'string') {
+      value = JSON.parse(value);
+    }
+    if (value) renderFn(value);
+    toast('Regenerated!', 'success');
+  } catch (err) { toast(err.message, 'error'); }
+}</code></pre>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">Why so many bugs in one place?</div>
+    <p>The regenerate feature was likely written before the backend endpoint was finalized. The URL format, section naming, and response shape all diverged between the frontend and backend and were never reconciled. These are integration bugs — each file worked in isolation but didn't agree on the contract.</p>
+  </div>
+
+  <h2>Verify the Fixes</h2>
+  <p>After copying the repo to the other laptop and starting the backend, test these four things:</p>
+  <ol>
+    <li>Open an application that has a draft → change the status dropdown → the "Saved ✓" flash should appear</li>
+    <li>Open the Cover Letter tab → click "Download .docx" → file should download</li>
+    <li>Click "↺ Regenerate" on the Resume tab → should show "Regenerating…" toast then update the diff view</li>
+    <li>Click "↺ Regenerate" on the Interview tab → should repopulate the accordion</li>
+  </ol>
+
+  <div class="page-nav">
+    <a href="00-getting-started.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>00 · Get Started — New Laptop</span>
+    </a>
+    <a href="02-features-applied.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>Features — Already Added</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

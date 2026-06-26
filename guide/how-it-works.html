@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How It Works — Co-Pilot Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Sections</div>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+    <a href="how-it-works.html" class="active">🔍 How It Works</a>
+    <a href="01-setup.html">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html">02 · Database &amp; Models</a>
+    <a href="03-auth.html">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+</aside>
+
+<main class="main">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-tag">Overview</div>
+    <h1 class="page-title">How It Works</h1>
+    <p class="page-subtitle">The full picture — from browser click to AI output — before you write a single line of code.</p>
+  </div>
+
+  <p>This page is your mental model. Read it once before you start building, and refer back to it whenever you feel lost in the details. By the time you finish reading, you should be able to trace any user action all the way through the stack and back.</p>
+
+  <!-- ─── SECTION 1: SYSTEM ARCHITECTURE ─────────────────────────────── -->
+  <h2><span class="step-num">1</span> System Architecture</h2>
+
+  <p>The project runs as two completely separate servers on your local machine. One serves the HTML/CSS/JS files your browser loads. The other runs the Python API that handles data, auth, and AI calls. They communicate over HTTP — the same way a real production app would communicate across the internet.</p>
+
+  <!-- Architecture diagram -->
+  <div style="display:flex; flex-direction:column; gap:16px; font-family:monospace; font-size:0.85rem; margin:28px 0 32px;">
+
+    <!-- Browser box -->
+    <div style="border:2px solid #3b82f6; border-radius:12px; padding:20px; background:rgba(59,130,246,0.05);">
+      <div style="color:#60a5fa; font-weight:700; margin-bottom:12px; font-size:0.9rem;">🌐 USER'S BROWSER &nbsp;·&nbsp; <span style="font-weight:400; color:#94a3b8;">localhost:3000</span> &nbsp;<span style="font-weight:400; color:#64748b; font-size:0.78rem;">(python -m http.server)</span></div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-weight:600; font-size:0.78rem;">index.html</div>
+          <div style="color:#94a3b8; font-size:0.72rem; margin-top:4px;">Login / Signup</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-weight:600; font-size:0.78rem;">dashboard.html</div>
+          <div style="color:#94a3b8; font-size:0.72rem; margin-top:4px;">App List</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-weight:600; font-size:0.78rem;">new-application.html</div>
+          <div style="color:#94a3b8; font-size:0.72rem; margin-top:4px;">Create + Generate</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-weight:600; font-size:0.78rem;">application.html</div>
+          <div style="color:#94a3b8; font-size:0.72rem; margin-top:4px;">View Results</div>
+        </div>
+      </div>
+      <div style="text-align:center; color:#64748b; margin-top:14px; font-size:0.78rem;">↓ &nbsp;fetch() calls via <code style="font-size:0.75rem; background:#0f172a; border-color:#334155; color:#7c3aed;">api.js</code> — all authenticated with <code style="font-size:0.75rem; background:#0f172a; border-color:#334155; color:#7c3aed;">Authorization: Bearer &lt;token&gt;</code></div>
+    </div>
+
+    <!-- Arrow -->
+    <div style="text-align:center; color:#64748b; font-size:1.5rem; line-height:1;">↕</div>
+
+    <!-- Backend box -->
+    <div style="border:2px solid #10b981; border-radius:12px; padding:20px; background:rgba(16,185,129,0.05);">
+      <div style="color:#34d399; font-weight:700; margin-bottom:12px; font-size:0.9rem;">⚡ FASTAPI BACKEND &nbsp;·&nbsp; <span style="font-weight:400; color:#94a3b8;">localhost:8000</span> &nbsp;<span style="font-weight:400; color:#64748b; font-size:0.78rem;">(uvicorn)</span></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:14px;">
+          <div style="color:#60a5fa; font-weight:600; font-size:0.8rem; margin-bottom:8px;">/auth/*</div>
+          <div style="color:#94a3b8; font-size:0.78rem; line-height:2;">POST /signup<br>POST /login → JWT token<br>GET /me</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:14px;">
+          <div style="color:#60a5fa; font-weight:600; font-size:0.8rem; margin-bottom:8px;">/applications/*</div>
+          <div style="color:#94a3b8; font-size:0.78rem; line-height:2;">GET / POST / PATCH / DELETE<br>POST /{id}/generate → agents<br>GET /{id}/download/cover-letter</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px;">
+        <div style="background:#0f172a; border:1px solid #7c3aed; border-radius:8px; padding:14px;">
+          <div style="color:#a78bfa; font-weight:600; font-size:0.8rem; margin-bottom:8px;">🤖 Multi-Agent Pipeline</div>
+          <div style="color:#94a3b8; font-size:0.78rem; line-height:1.9;">Agent 1: Fit Analysis (sequential)<br>Agents 2 + 3 + 4: parallel via <code style="font-size:0.73rem; background:#1e293b; border-color:#334155; color:#a78bfa;">asyncio.gather()</code><br>~15s total vs ~45s sequential</div>
+        </div>
+        <div style="background:#0f172a; border:1px solid #f59e0b; border-radius:8px; padding:14px;">
+          <div style="color:#fbbf24; font-weight:600; font-size:0.8rem; margin-bottom:8px;">🗄️ SQLite Database</div>
+          <div style="color:#94a3b8; font-size:0.78rem; line-height:1.9;">users table<br>applications table<br>drafts table (agent outputs as JSON)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div style="text-align:center; color:#64748b; font-size:1.5rem; line-height:1;">↕</div>
+
+    <!-- Groq box -->
+    <div style="border:2px solid #7c3aed; border-radius:12px; padding:16px 20px; background:rgba(124,58,237,0.05); display:flex; align-items:center; gap:16px;">
+      <div style="font-size:2rem; flex-shrink:0;">🧠</div>
+      <div>
+        <div style="color:#a78bfa; font-weight:700; font-size:0.9rem;">Groq Cloud API</div>
+        <div style="color:#94a3b8; font-size:0.8rem; margin-top:4px;"><code style="font-size:0.78rem; background:#0f172a; border-color:#334155; color:#a78bfa;">llama-3.3-70b-versatile</code> &nbsp;·&nbsp; Free tier &nbsp;·&nbsp; ~3–5s per agent call</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY two servers instead of one?</div>
+    <p>FastAPI serves JSON data, not HTML pages. Separating static files from the API is standard architecture — it mirrors exactly what you'd do in production (Vercel for frontend, Railway/Render for backend). It also makes the project easier to reason about: everything in <code>frontend/</code> is just files, everything in <code>backend/</code> is logic.</p>
+  </div>
+
+
+  <!-- ─── SECTION 2: THE 4 CORE FLOWS ──────────────────────────────────── -->
+  <h2><span class="step-num">2</span> The 4 Core Flows</h2>
+
+  <p>Every user interaction in this app reduces to one of four flows. Master these and you understand the entire system.</p>
+
+  <!-- ── FLOW 1 ── -->
+  <h3>Flow 1 — Sign Up / Login</h3>
+  <p>How a user gets from the landing page to a valid session, and how that session persists across page loads.</p>
+
+  <div style="display:flex; flex-direction:column; gap:0; margin:20px 0 28px;">
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong>User fills in email + password on <code>index.html</code></strong><br><span style="font-size:0.85rem; color:#64748b;">The form calls the login or signup handler in <code>index.js</code>.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div><strong>JS calls <code>api.post('/auth/login', &#123; email, password &#125;)</code></strong><br><span style="font-size:0.85rem; color:#64748b;">The <code>request()</code> function in <code>api.js</code> adds no auth header here — the user isn't logged in yet.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>FastAPI receives <code>POST /auth/login</code> → <code>auth_router.py</code></strong><br><span style="font-size:0.85rem; color:#64748b;">Route is public (no <code>Depends(get_current_user)</code>). Queries the <code>users</code> table for the submitted email.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">4</div>
+      <div><strong>Password is verified with bcrypt: <code>verify_password(plain, hashed)</code></strong><br><span style="font-size:0.85rem; color:#64748b;">The stored password is never the raw string — it was hashed at signup time. bcrypt compares the hash.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">5</div>
+      <div><strong>If valid: <code>create_access_token(&#123;"sub": email&#125;)</code> → signed JWT string</strong><br><span style="font-size:0.85rem; color:#64748b;">The payload encodes the user's email and an expiry timestamp. Signed with the app's secret key.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">6</div>
+      <div><strong>Returns <code>&#123; access_token: "eyJ...", token_type: "bearer" &#125;</code></strong><br><span style="font-size:0.85rem; color:#64748b;">This is the standard OAuth2 response shape FastAPI uses.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">7</div>
+      <div><strong>JS stores it: <code>auth.setToken(data.access_token)</code> → <code>localStorage</code></strong><br><span style="font-size:0.85rem; color:#64748b;">Survives page refresh, browser close and reopen. Cleared on logout or 401 response.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">8</div>
+      <div><strong>JS immediately calls <code>api.get('/auth/me')</code> — now with the Bearer header</strong><br><span style="font-size:0.85rem; color:#64748b;">Gets back the user object (id, email, full_name). Stored via <code>auth.setUser(user)</code>.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:0 0 10px 10px;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">✓</div>
+      <div><strong>Redirects to <code>dashboard.html</code></strong><br><span style="font-size:0.85rem; color:#64748b;">From here, every subsequent <code>request()</code> call automatically reads the token from localStorage and adds <code>Authorization: Bearer &lt;token&gt;</code>.</span></div>
+    </div>
+
+  </div>
+
+  <!-- ── FLOW 2 ── -->
+  <h3>Flow 2 — Create Application (Upload PDF + Fill Form)</h3>
+  <p>How a resume PDF and job description travel from the user's file system into the database — and how the raw bytes become searchable text.</p>
+
+  <div style="display:flex; flex-direction:column; gap:0; margin:20px 0 28px;">
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong>User is on Step 1 of <code>new-application.html</code> — selects or drops a PDF file</strong><br><span style="font-size:0.85rem; color:#64748b;">The file is held in memory by the browser. Nothing is uploaded yet.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div><strong>User fills Step 2 — job title, company name, job description text</strong><br><span style="font-size:0.85rem; color:#64748b;">A multi-step wizard UI in <code>new-application.js</code> manages which panel is visible.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>User clicks "Generate My Kit" — JS builds a <code>FormData</code> object</strong><br><span style="font-size:0.85rem; color:#64748b;"><code>resume_file</code>: the PDF binary &nbsp;·&nbsp; <code>job_title</code>, <code>company</code>, <code>jd_text</code>: text fields. Multipart encoding bundles binary and text in one request.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">4</div>
+      <div><strong><code>api.postForm('/applications/', formData)</code> → fetch with <code>Content-Type: multipart/form-data</code></strong><br><span style="font-size:0.85rem; color:#64748b;">Note: <code>postForm</code> does NOT set the Content-Type header manually — the browser sets it with the correct boundary string automatically when given a FormData object.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">5</div>
+      <div><strong>FastAPI <code>POST /applications/</code> reads the PDF bytes → <code>extract_text_from_pdf(bytes)</code></strong><br><span style="font-size:0.85rem; color:#64748b;">Uses <code>pypdf</code> to extract all pages as plain text. The raw PDF binary is never stored — only the extracted text.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">6</div>
+      <div><strong>Creates an <code>Application</code> row in DB with the extracted text as <code>original_resume</code></strong><br><span style="font-size:0.85rem; color:#64748b;">Also stores <code>jd_text</code>, <code>job_title</code>, <code>company</code>, and <code>user_id</code>. Status defaults to <code>not_yet</code>.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">7</div>
+      <div><strong>Returns the new application with its <code>id</code></strong><br><span style="font-size:0.85rem; color:#64748b;">The application exists in the DB but no AI output yet. The draft is still empty.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">8</div>
+      <div><strong>JS immediately calls <code>api.post('/applications/{id}/generate')</code></strong><br><span style="font-size:0.85rem; color:#64748b;">This kicks off the AI pipeline. The call is async — JS awaits the response while showing a loading screen.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">9</div>
+      <div><strong>Step 3 loading screen appears while waiting (~15 seconds)</strong><br><span style="font-size:0.85rem; color:#64748b;">An animated progress bar and rotating status messages keep the user informed.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:0 0 10px 10px;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">✓</div>
+      <div><strong>On completion → redirects to <code>application.html?id={id}</code></strong><br><span style="font-size:0.85rem; color:#64748b;">The full AI kit is now stored in the DB and ready to display.</span></div>
+    </div>
+
+  </div>
+
+  <!-- ── FLOW 3 ── -->
+  <h3>Flow 3 — The AI Generation Pipeline <span class="badge badge-purple" style="font-size:0.7rem; vertical-align:middle;">Core Feature</span></h3>
+  <p>This is the heart of the app. One API call triggers four LLM agents — the first runs sequentially, the other three run simultaneously. Here's exactly what happens inside <code>orchestrator.py</code>.</p>
+
+  <div style="display:flex; flex-direction:column; gap:0; margin:20px 0 24px;">
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong>Backend receives <code>POST /applications/{id}/generate</code></strong><br><span style="font-size:0.85rem; color:#64748b;">Protected route — requires a valid JWT. Fetches the full application row from the DB.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div><strong>Fetches <code>original_resume</code> text and <code>jd_text</code> from the DB row</strong><br><span style="font-size:0.85rem; color:#64748b;">These two strings are the only inputs the entire AI pipeline needs.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>Calls <code>run_pipeline(resume_text, jd_text)</code> in <code>orchestrator.py</code></strong><br><span style="font-size:0.85rem; color:#64748b;">This is an <code>async</code> function. FastAPI awaits it without blocking other requests.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#eff6ff; border:1px solid #bfdbfe; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">4</div>
+      <div>
+        <strong>Agent 1 — Fit Analyst (runs first, sequential)</strong><br>
+        <span style="font-size:0.85rem; color:#64748b;">Prompt: "You are a recruiter. Score this resume against this JD." Sent to Groq with <code>temperature: 0.2</code> (low = consistent, reproducible scoring). Returns structured JSON:</span>
+        <div style="margin-top:8px; background:#0f172a; border-radius:6px; padding:10px 14px; font-family:monospace; font-size:0.78rem; color:#94a3b8; line-height:1.7;">
+          &#123; match_score: 78, matching_requirements: [...], missing_requirements: [...], keywords: [...] &#125;
+        </div>
+        <span style="font-size:0.83rem; color:#64748b;">Takes ~3–5 seconds. Its output is passed directly to Agents 2, 3, and 4.</span>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">5</div>
+      <div>
+        <strong>Agents 2, 3, 4 launch simultaneously via <code>asyncio.gather()</code></strong><br>
+        <span style="font-size:0.85rem; color:#64748b;">All three get the resume, JD, and Agent 1's analysis as context. They run as concurrent coroutines:</span>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px;">
+          <div style="background:#0f172a; border:1px solid #3b0764; border-radius:6px; padding:10px;">
+            <div style="color:#a78bfa; font-weight:600; font-size:0.78rem; margin-bottom:6px;">Agent 2 · Resume Writer</div>
+            <div style="color:#64748b; font-size:0.75rem; line-height:1.7;">Rewrites resume to match JD keywords.<br>Returns: <code style="font-size:0.72rem; background:#1e293b; border-color:#334155; color:#a78bfa;">&#123; rewritten_resume, changes: [&#123;original, rewritten, reason&#125;] &#125;</code></div>
+          </div>
+          <div style="background:#0f172a; border:1px solid #3b0764; border-radius:6px; padding:10px;">
+            <div style="color:#a78bfa; font-weight:600; font-size:0.78rem; margin-bottom:6px;">Agent 3 · Cover Letter</div>
+            <div style="color:#64748b; font-size:0.75rem; line-height:1.7;">Writes a 1-page cover letter, tone-matched to the company.<br>Returns: plain text (not JSON).</div>
+          </div>
+          <div style="background:#0f172a; border:1px solid #3b0764; border-radius:6px; padding:10px;">
+            <div style="color:#a78bfa; font-weight:600; font-size:0.78rem; margin-bottom:6px;">Agent 4 · Interviewer</div>
+            <div style="color:#64748b; font-size:0.75rem; line-height:1.7;">Generates 10 Q&amp;As.<br>Returns: <code style="font-size:0.72rem; background:#1e293b; border-color:#334155; color:#a78bfa;">[&#123;type, question, sample_answer, tip&#125;]</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">6</div>
+      <div><strong>All results saved to the <code>drafts</code> table as JSON strings</strong><br><span style="font-size:0.85rem; color:#64748b;">Each agent output is serialized with <code>json.dumps()</code> before storage. This avoids 4 extra relational tables.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:0 0 10px 10px;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">✓</div>
+      <div><strong>Returns <code>ApplicationOut</code> with the complete <code>draft</code> object embedded</strong><br><span style="font-size:0.85rem; color:#64748b;">Total wall-clock time: ~15 seconds. Sequential would be ~45 seconds — a 3× speedup from parallelism.</span></div>
+    </div>
+
+  </div>
+
+  <!-- Timeline diagram -->
+  <div style="background:#0f172a; border:1px solid #334155; border-radius:12px; padding:24px; font-family:monospace; font-size:0.8rem; margin:0 0 28px;">
+    <div style="color:#94a3b8; margin-bottom:16px; font-weight:600;">Execution Timeline (approximate)</div>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <!-- time axis -->
+      <div style="display:flex; align-items:center; gap:4px; color:#475569; font-size:0.72rem; padding-left:136px; margin-bottom:2px;">
+        <span>0s</span>
+        <span style="margin-left:18px;">5s</span>
+        <span style="margin-left:18px;">10s</span>
+        <span style="margin-left:16px;">15s</span>
+        <span style="margin-left:16px;">20s</span>
+      </div>
+      <!-- Agent 1 -->
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:128px; color:#60a5fa; font-weight:600; font-size:0.78rem; flex-shrink:0; text-align:right;">Agent 1 · Fit</div>
+        <div style="background:linear-gradient(90deg,#1d4ed8,#3b82f6); height:26px; width:110px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.72rem; flex-shrink:0; box-shadow:0 0 12px rgba(59,130,246,0.4);">~5s</div>
+      </div>
+      <!-- Agent 2 -->
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:128px; color:#a78bfa; font-weight:600; font-size:0.78rem; flex-shrink:0; text-align:right;">Agent 2 · Resume</div>
+        <div style="width:110px; flex-shrink:0;"></div>
+        <div style="background:linear-gradient(90deg,#6d28d9,#7c3aed); height:26px; width:160px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.72rem; flex-shrink:0; box-shadow:0 0 12px rgba(124,58,237,0.4);">~8s (parallel)</div>
+      </div>
+      <!-- Agent 3 -->
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:128px; color:#a78bfa; font-weight:600; font-size:0.78rem; flex-shrink:0; text-align:right;">Agent 3 · Cover</div>
+        <div style="width:110px; flex-shrink:0;"></div>
+        <div style="background:linear-gradient(90deg,#6d28d9,#7c3aed); height:26px; width:120px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.72rem; flex-shrink:0; box-shadow:0 0 12px rgba(124,58,237,0.4);">~6s (parallel)</div>
+      </div>
+      <!-- Agent 4 -->
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:128px; color:#a78bfa; font-weight:600; font-size:0.78rem; flex-shrink:0; text-align:right;">Agent 4 · Interview</div>
+        <div style="width:110px; flex-shrink:0;"></div>
+        <div style="background:linear-gradient(90deg,#6d28d9,#7c3aed); height:26px; width:195px; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.72rem; flex-shrink:0; box-shadow:0 0 12px rgba(124,58,237,0.4);">~10s (parallel)</div>
+      </div>
+      <!-- Summary -->
+      <div style="margin-top:10px; padding-top:12px; border-top:1px solid #1e293b; display:flex; align-items:center; gap:12px; font-size:0.82rem;">
+        <span style="color:#10b981; font-weight:700;">Total: ~15s</span>
+        <span style="color:#475569;">vs.</span>
+        <span style="color:#ef4444; text-decoration:line-through; color:#64748b;">Sequential: ~45s</span>
+        <span style="background:#064e3b; color:#10b981; font-size:0.7rem; font-weight:700; padding:2px 8px; border-radius:100px;">3× faster</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY run Agent 1 first?</div>
+    <p>Agents 2, 3, and 4 all benefit from knowing the fit score and missing keywords before they write. Agent 2 uses the keyword list to know exactly what to weave into the resume. Agent 3 uses the missing requirements to address them proactively in the cover letter. Agent 4 uses them to generate questions the interviewer will likely ask. Agent 1's output makes the other three outputs measurably better.</p>
+  </div>
+
+  <!-- ── FLOW 4 ── -->
+  <h3>Flow 4 — Viewing Results</h3>
+  <p>How the stored JSON strings become the interactive tabs, animated score rings, and downloadable files the user sees on <code>application.html</code>.</p>
+
+  <div style="display:flex; flex-direction:column; gap:0; margin:20px 0 28px;">
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong><code>application.html</code> loads, reads <code>?id=123</code> from the URL</strong><br><span style="font-size:0.85rem; color:#64748b;"><code>new URLSearchParams(window.location.search).get('id')</code> — no page router needed.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div><strong>Calls <code>api.get('/applications/123')</code> → returns full <code>ApplicationOut</code> with embedded <code>draft</code></strong><br><span style="font-size:0.85rem; color:#64748b;">One HTTP call fetches everything. The draft is nested inside the application JSON response.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>Draft fields are JSON strings — JS parses them: <code>JSON.parse(app.draft.fit_analysis)</code></strong><br><span style="font-size:0.85rem; color:#64748b;">The database stores agent output as text. JS deserializes each field back into a live object when rendering.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">4</div>
+      <div><strong>Fit Analysis tab: reads <code>match_score</code> → animates SVG ring via <code>stroke-dashoffset</code></strong><br><span style="font-size:0.85rem; color:#64748b;">Renders matching/missing requirement lists and keyword tags. The ring animation runs on <code>requestAnimationFrame</code>.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">5</div>
+      <div><strong>Resume tab: original text left panel, rewritten text right panel; change cards below</strong><br><span style="font-size:0.85rem; color:#64748b;">Each change card in the <code>changes</code> array shows what was rewritten and why.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">6</div>
+      <div><strong>Cover Letter tab: displays <code>draft.cover_letter</code> as <code>&lt;pre&gt;</code> text; Download button triggers .docx generation</strong><br><span style="font-size:0.85rem; color:#64748b;"><code>GET /applications/123/download/cover-letter</code> → backend uses <code>python-docx</code> to generate bytes → browser receives the file with a <code>Content-Disposition: attachment</code> header.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; padding:14px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:0 0 10px 10px;">
+      <div style="width:28px; height:28px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700; flex-shrink:0; margin-top:1px;">7</div>
+      <div><strong>Interview Prep tab: renders accordion cards, one per Q&amp;A in the <code>interview_qa</code> array</strong><br><span style="font-size:0.85rem; color:#64748b;">Each card has a <code>type</code> badge (behavioral / technical / situational), the question, a sample answer, and a coaching tip. Click to expand.</span></div>
+    </div>
+
+  </div>
+
+
+  <!-- ─── SECTION 3: JWT LIFECYCLE ─────────────────────────────────────── -->
+  <h2><span class="step-num">3</span> Authentication Flow (JWT Lifecycle)</h2>
+
+  <p>JWT (JSON Web Token) is how the app knows who you are on every request — without storing any session data on the server. Here is the full lifecycle:</p>
+
+  <!-- JWT flow diagram -->
+  <div style="display:grid; grid-template-columns:1fr; gap:2px; margin:24px 0 28px;">
+
+    <div style="display:flex; gap:16px; align-items:flex-start; padding:16px 20px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="background:#3b82f6; color:white; padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-top:2px;">LOGIN</div>
+      <div style="font-size:0.88rem; color:#0f172a;">Server creates token: <code>jwt.encode(&#123;"sub": email, "exp": now + 7 days&#125;, SECRET_KEY)</code><br><span style="color:#64748b; font-size:0.82rem;">The token is just a signed string — it encodes claims and an expiry. If you decode it at <a href="https://jwt.io" target="_blank">jwt.io</a> you can read the payload (but can't forge it without the secret key).</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; padding:16px 20px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="background:#7c3aed; color:white; padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-top:2px;">STORED</div>
+      <div style="font-size:0.88rem; color:#0f172a;"><code>localStorage.setItem('token', access_token)</code><br><span style="color:#64748b; font-size:0.82rem;">Persists across browser tabs and page refreshes. Cleared by <code>auth.logout()</code> or automatically on 401.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; padding:16px 20px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="background:#0f172a; color:#60a5fa; padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-top:2px; border:1px solid #334155;">EVERY REQ</div>
+      <div style="font-size:0.88rem; color:#0f172a;">The <code>request()</code> function in <code>api.js</code> adds <code>Authorization: Bearer eyJhbGci...</code><br><span style="color:#64748b; font-size:0.82rem;">This happens automatically for every fetch — you never write the header manually in your page JS.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; padding:16px 20px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="background:#10b981; color:white; padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-top:2px;">SERVER</div>
+      <div style="font-size:0.88rem; color:#0f172a;"><code>get_current_user()</code> FastAPI dependency decodes the token, extracts email, queries DB<br><span style="color:#64748b; font-size:0.82rem;">This dependency is injected into every protected route. The route handler receives the user object — it never touches token logic itself.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; padding:16px 20px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="background:#10b981; color:white; padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-top:2px;">✓ VALID</div>
+      <div style="font-size:0.88rem; color:#0f172a;">Endpoint gets <code>current_user</code> object injected — processes the request normally.<br><span style="color:#64748b; font-size:0.82rem;">The user's <code>id</code> from this object is used to scope all DB queries — you can only see your own applications.</span></div>
+    </div>
+
+    <div style="display:flex; gap:16px; align-items:flex-start; padding:16px 20px; background:#fff1f2; border:1px solid #fecdd3; border-radius:0 0 10px 10px;">
+      <div style="background:#ef4444; color:white; padding:4px 12px; border-radius:100px; font-size:0.72rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-top:2px;">✗ INVALID</div>
+      <div style="font-size:0.88rem; color:#0f172a;">401 returned → <code>request()</code> auto-clears localStorage + redirects to login<br><span style="color:#64748b; font-size:0.82rem;">Happens if the token is expired (7 days), tampered with, or if someone manually forged a token with the wrong key.</span></div>
+    </div>
+
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY stateless auth?</div>
+    <p>The server never stores sessions. No session table. No Redis. The token <em>is</em> the proof of identity — as long as it is signed with the correct secret key and not expired, the server can verify it with pure computation. This means the backend can be restarted, scaled to multiple instances, or moved to a serverless function — and existing logged-in users are unaffected.</p>
+  </div>
+
+
+  <!-- ─── SECTION 4: DATABASE SCHEMA ───────────────────────────────────── -->
+  <h2><span class="step-num">4</span> Database Schema &amp; Relationships</h2>
+
+  <p>Three SQLAlchemy models, one SQLite file (<code>job_copilot.db</code>). The schema is intentionally minimal — agent outputs are stored as JSON text strings rather than normalized into separate columns.</p>
+
+  <!-- Schema diagram -->
+  <div style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:0; align-items:start; margin:28px 0 32px; font-family:monospace; font-size:0.82rem;">
+
+    <!-- users table -->
+    <div style="border:2px solid #3b82f6; border-radius:10px; overflow:hidden;">
+      <div style="background:#1e3a8a; color:#93c5fd; font-weight:700; padding:10px 14px; font-size:0.8rem;">users</div>
+      <div style="background:#f8fafc; padding:12px 14px; line-height:2.1;">
+        <div><span style="color:#f59e0b; font-weight:600;">id</span> <span style="color:#94a3b8;">Integer PK</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">email</span> <span style="color:#94a3b8;">String unique</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">hashed_password</span> <span style="color:#94a3b8;">String</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">full_name</span> <span style="color:#94a3b8;">String</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">created_at</span> <span style="color:#94a3b8;">DateTime</span></div>
+      </div>
+    </div>
+
+    <!-- Arrow 1→many -->
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 12px; padding-top:60px; color:#64748b; font-size:0.72rem; text-align:center; gap:4px;">
+      <div style="font-size:0.68rem; color:#94a3b8;">1</div>
+      <div style="font-size:1.2rem; color:#94a3b8;">→</div>
+      <div style="font-size:0.68rem; color:#94a3b8;">many</div>
+    </div>
+
+    <!-- applications table -->
+    <div style="border:2px solid #10b981; border-radius:10px; overflow:hidden;">
+      <div style="background:#064e3b; color:#6ee7b7; font-weight:700; padding:10px 14px; font-size:0.8rem;">applications</div>
+      <div style="background:#f8fafc; padding:12px 14px; line-height:2.1;">
+        <div><span style="color:#f59e0b; font-weight:600;">id</span> <span style="color:#94a3b8;">Integer PK</span></div>
+        <div><span style="color:#ef4444; font-weight:600;">user_id</span> <span style="color:#94a3b8;">FK → users.id</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">job_title</span> <span style="color:#94a3b8;">String</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">company</span> <span style="color:#94a3b8;">String</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">jd_text</span> <span style="color:#94a3b8;">Text</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">original_resume</span> <span style="color:#94a3b8;">Text</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">status</span> <span style="color:#94a3b8;">Enum (text)</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">created_at</span> <span style="color:#94a3b8;">DateTime</span></div>
+      </div>
+    </div>
+
+    <!-- Arrow 1→1 -->
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 12px; padding-top:60px; color:#64748b; font-size:0.72rem; text-align:center; gap:4px;">
+      <div style="font-size:0.68rem; color:#94a3b8;">1</div>
+      <div style="font-size:1.2rem; color:#94a3b8;">→</div>
+      <div style="font-size:0.68rem; color:#94a3b8;">1</div>
+    </div>
+
+    <!-- drafts table -->
+    <div style="border:2px solid #7c3aed; border-radius:10px; overflow:hidden;">
+      <div style="background:#3b0764; color:#c4b5fd; font-weight:700; padding:10px 14px; font-size:0.8rem;">drafts</div>
+      <div style="background:#f8fafc; padding:12px 14px; line-height:2.1;">
+        <div><span style="color:#f59e0b; font-weight:600;">id</span> <span style="color:#94a3b8;">Integer PK</span></div>
+        <div><span style="color:#ef4444; font-weight:600;">application_id</span> <span style="color:#94a3b8;">FK → apps.id</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">fit_analysis</span> <span style="color:#94a3b8;">JSON text</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">resume_rewrite</span> <span style="color:#94a3b8;">JSON text</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">cover_letter</span> <span style="color:#94a3b8;">Text</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">interview_qa</span> <span style="color:#94a3b8;">JSON text</span></div>
+        <div><span style="color:#0f172a; font-weight:500;">generated_at</span> <span style="color:#94a3b8;">DateTime</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <h3>Key design decisions</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Decision</th>
+        <th>How it works</th>
+        <th>Why</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1-to-1 draft relationship</td>
+        <td><code>relationship("Draft", uselist=False)</code> on the Application model — SQLAlchemy returns a single object instead of a list</td>
+        <td>Each application generates exactly one kit. Enforced at the ORM level, not just by convention.</td>
+      </tr>
+      <tr>
+        <td>Cascade deletes</td>
+        <td><code>cascade="all, delete-orphan"</code> on the relationship</td>
+        <td>Delete a user → their applications are deleted → their drafts are deleted. No orphan rows ever build up.</td>
+      </tr>
+      <tr>
+        <td>Agent outputs as JSON text</td>
+        <td><code>json.dumps(result)</code> before INSERT, <code>json.loads()</code> after SELECT</td>
+        <td>Avoids 4 extra tables (fit_requirements, resume_changes, interview_questions…). The structure is defined by the agent prompt, not the DB schema.</td>
+      </tr>
+      <tr>
+        <td>Status as Python Enum</td>
+        <td><code>class ApplicationStatus(str, Enum): not_yet / applied / interviewed / rejected / offer</code></td>
+        <td>SQLite has no native enum type — storing as text is fine. Python Enum gives type safety and IDE autocompletion. FastAPI validates it automatically in request bodies.</td>
+      </tr>
+    </tbody>
+  </table>
+
+
+  <!-- ─── SECTION 5: TWO SERVER SETUP ──────────────────────────────────── -->
+  <h2><span class="step-num">5</span> The Two-Server Setup</h2>
+
+  <p>You will run two terminal processes every time you develop. Here is why each one exists and what it does.</p>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:24px 0 28px;">
+
+    <div style="border:2px solid #3b82f6; border-radius:12px; padding:20px; background:rgba(59,130,246,0.04);">
+      <div style="color:#60a5fa; font-weight:700; font-size:0.9rem; margin-bottom:10px;">🖥️ Backend — port 8000</div>
+      <div style="background:#0f172a; border-radius:8px; padding:12px 14px; font-family:monospace; font-size:0.82rem; color:#94a3b8; margin-bottom:12px;">uvicorn main:app --reload --port 8000</div>
+      <p style="font-size:0.85rem; margin:0;">FastAPI handles all API logic, database reads/writes, PDF parsing, JWT verification, and Groq API calls. <strong>Must be running for any data operation to work.</strong></p>
+    </div>
+
+    <div style="border:2px solid #10b981; border-radius:12px; padding:20px; background:rgba(16,185,129,0.04);">
+      <div style="color:#34d399; font-weight:700; font-size:0.9rem; margin-bottom:10px;">🌐 Frontend — port 3000</div>
+      <div style="background:#0f172a; border-radius:8px; padding:12px 14px; font-family:monospace; font-size:0.82rem; color:#94a3b8; margin-bottom:12px;">python -m http.server 3000</div>
+      <p style="font-size:0.85rem; margin:0;">Serves static HTML/CSS/JS files. No logic at all — just bytes on request. In production you would replace this with Nginx, Vercel, or Netlify. <strong>Can be any static file server.</strong></p>
+    </div>
+
+  </div>
+
+  <h3>Why CORS is required</h3>
+
+  <p>When JavaScript running on <code>localhost:3000</code> tries to make a fetch request to <code>localhost:8000</code>, the browser treats these as different <strong>origins</strong> (different ports = different origins). By default, the browser blocks such cross-origin requests to prevent malicious sites from silently reading your bank's API.</p>
+
+  <p>The <code>CORSMiddleware</code> in <code>main.py</code> — configured with <code>allow_origins=["*"]</code> — sends back HTTP headers that tell the browser: "Yes, this API explicitly allows requests from any origin." The browser then allows the fetch to proceed.</p>
+
+  <div class="note-box">
+    <div class="note-label">⚠ Note</div>
+    <p><code>allow_origins=["*"]</code> is fine for local development and learning. In a real production deployment, lock this down to your actual frontend domain — e.g., <code>allow_origins=["https://myapp.vercel.app"]</code> — to prevent other websites from using your API on behalf of your users.</p>
+  </div>
+
+  <h3>The two commands to start the project</h3>
+
+  <!-- Terminal 1 -->
+  <div class="code-block">
+    <div class="code-header">
+      <div class="code-file"><span class="lang">bash</span>&nbsp; Terminal 1 — backend/ (venv activated)</div>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">uvicorn main:app --reload --port 8000</code></pre>
+  </div>
+
+  <!-- Terminal 2 -->
+  <div class="code-block">
+    <div class="code-header">
+      <div class="code-file"><span class="lang">bash</span>&nbsp; Terminal 2 — frontend/</div>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">python -m http.server 3000</code></pre>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY not just use FastAPI to serve the HTML too?</div>
+    <p>You could — FastAPI supports <code>StaticFiles</code> mounting. But keeping them separate is better practice for learning: it makes the API/frontend boundary explicit, forces you to think about CORS and auth headers, and matches the real-world pattern you will follow on every professional project. The discipline of treating the frontend as a completely separate client pays off.</p>
+  </div>
+
+
+  <!-- ─── PAGE NAVIGATION ───────────────────────────────────────────────── -->
+  <div class="page-nav">
+    <a href="index.html" class="nav-card">
+      <div class="nav-dir">← Previous</div>
+      <div>🏠 Home</div>
+    </a>
+    <a href="01-setup.html" class="nav-card next">
+      <div class="nav-dir">Next →</div>
+      <div>01 · Architecture &amp; Setup</div>
+    </a>
+  </div>
+
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

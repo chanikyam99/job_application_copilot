@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 · Database &amp; Models — Co-Pilot Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Sections</div>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="01-setup.html">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html" class="active">02 · Database &amp; Models</a>
+    <a href="03-auth.html">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 02</div>
+    <h1 class="page-title">Database &amp; Models</h1>
+    <p class="page-subtitle">Three files that define the entire data layer: the connection, the tables, and the API contracts.</p>
+  </div>
+
+  <!-- DATABASE SCHEMA DIAGRAM -->
+  <h2>Database Schema</h2>
+  <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:24px; font-family:monospace; font-size:0.83rem; line-height:1.9; color:#475569;">
+    <strong style="color:#0f172a;">users</strong><br>
+    &nbsp;&nbsp;id (PK) · email (UNIQUE) · hashed_password · full_name · created_at<br><br>
+    <strong style="color:#0f172a;">applications</strong><br>
+    &nbsp;&nbsp;id (PK) · <span style="color:#3b82f6;">user_id (FK → users.id)</span> · job_title · company<br>
+    &nbsp;&nbsp;jd_text · original_resume · status · created_at · updated_at<br><br>
+    <strong style="color:#0f172a;">drafts</strong> &nbsp;<em style="color:#94a3b8;">(1:1 with applications)</em><br>
+    &nbsp;&nbsp;id (PK) · <span style="color:#3b82f6;">application_id (FK → applications.id)</span><br>
+    &nbsp;&nbsp;fit_analysis (JSON) · resume_rewrite (JSON) · cover_letter (text) · interview_qa (JSON) · generated_at
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY store agent outputs as JSON text columns?</div>
+    <p><code>fit_analysis</code> and <code>interview_qa</code> are structured objects (dicts and lists). Storing them as JSON Text columns avoids creating 5+ extra tables for fields that only exist to hold AI output. You <code>json.loads()</code> when reading, <code>json.dumps()</code> when writing. Simple, flexible, and the schema doesn't need to change if you add new fields to the AI output.</p>
+  </div>
+
+  <!-- database.py -->
+  <h2><span class="step-num">1</span> database.py</h2>
+  <p>Sets up the SQLAlchemy engine and the session factory. Every other file imports from here.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/database.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./job_copilot.db")
+
+# connect_args={"check_same_thread": False} is SQLite-specific.
+# SQLite normally refuses access from multiple threads.
+# FastAPI uses a thread pool, so without this flag you get:
+#   "SQLite objects created in a thread can only be used in that same thread"
+# When you switch to Postgres, remove it — Postgres handles concurrency natively.
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+)
+
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base is the parent class for all ORM models.
+# Every model class inherits from Base so SQLAlchemy knows the table exists.
+Base = declarative_base()
+
+
+def get_db():
+    """
+    FastAPI dependency: opens a DB session for each request, closes it after.
+    Used as: db: Session = Depends(get_db) in every endpoint function.
+    The try/finally ensures the session closes even if the endpoint raises.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()</code></pre>
+  </div>
+
+  <!-- models.py -->
+  <h2><span class="step-num">2</span> models.py</h2>
+  <p>SQLAlchemy ORM models — each class maps to a database table. Changes here create schema changes.</p>
+
+  <div class="why-box">
+    <div class="why-label">WHY ORM models instead of raw SQL?</div>
+    <p>SQLAlchemy ORM generates safe, parameterized SQL — no SQL injection possible. You write <code>db.query(User).filter(User.email == email).first()</code> instead of <code>cursor.execute("SELECT * FROM users WHERE email = '" + email + "'")</code>. The second version is injectable. The first is safe by design.</p>
+    <p>Also: <code>application.draft</code> gives you the related Draft object without writing a JOIN — SQLAlchemy handles it via the <code>relationship()</code> declaration.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/models.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum
+from sqlalchemy.orm import relationship
+from datetime import datetime
+from database import Base
+import enum
+
+
+class ApplicationStatus(str, enum.Enum):
+    """
+    str + enum.Enum means values are stored as strings in the DB.
+    This lets you compare status == "applied" in templates without .value.
+    The 5 statuses map to the typical job application lifecycle.
+    """
+    not_yet    = "not_yet"
+    applied    = "applied"
+    interviewed = "interviewed"
+    rejected   = "rejected"
+    offer      = "offer"
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    email           = Column(String(255), unique=True, index=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    full_name       = Column(String(255))
+    created_at      = Column(DateTime, default=datetime.utcnow)
+
+    # One user → many applications
+    # cascade="all, delete-orphan": deleting the user auto-deletes their applications
+    applications = relationship(
+        "Application",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+
+class Application(Base):
+    __tablename__ = "applications"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    user_id         = Column(Integer, ForeignKey("users.id"), nullable=False)
+    job_title       = Column(String(500), nullable=False)
+    company         = Column(String(500), nullable=False)
+    jd_text         = Column(Text, nullable=False)
+    # Text has no length limit in SQLite (unlike String(N)).
+    # Resumes can be 3000+ characters — use Text, not String.
+    original_resume = Column(Text, nullable=False)
+    status          = Column(Enum(ApplicationStatus), default=ApplicationStatus.not_yet)
+    created_at      = Column(DateTime, default=datetime.utcnow)
+    updated_at      = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user  = relationship("User", back_populates="applications")
+    # uselist=False = one Application has exactly one Draft (1:1 not 1:many)
+    # cascade = deleting application auto-deletes its draft
+    draft = relationship(
+        "Draft",
+        back_populates="application",
+        uselist=False,
+        cascade="all, delete-orphan"
+    )
+
+
+class Draft(Base):
+    __tablename__ = "drafts"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False)
+
+    # All 4 agent outputs stored as Text (JSON strings).
+    # json.dumps() when writing, json.loads() when reading.
+    fit_analysis   = Column(Text)  # JSON: {match_score, matching_requirements, ...}
+    resume_rewrite = Column(Text)  # JSON: {text: "...", changes: [{original, rewritten, reason}]}
+    cover_letter   = Column(Text)  # Plain text — no JSON wrapper needed
+    interview_qa   = Column(Text)  # JSON: [{type, question, sample_answer, tip}, ...]
+    generated_at   = Column(DateTime, default=datetime.utcnow)
+
+    application = relationship("Application", back_populates="draft")</code></pre>
+  </div>
+
+  <!-- schemas.py -->
+  <h2><span class="step-num">3</span> schemas.py</h2>
+
+  <div class="why-box">
+    <div class="why-label">WHY separate Pydantic schemas from SQLAlchemy models?</div>
+    <p>SQLAlchemy models define what's in the <strong>database</strong>. Pydantic schemas define what comes in and out of <strong>HTTP requests</strong>. They're different concerns: a User model has <code>hashed_password</code>, but UserOut schema must never expose it. A UserCreate schema accepts a plaintext <code>password</code> field, but the database model never stores plaintext. Keeping them separate enforces these boundaries.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/schemas.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from pydantic import BaseModel, EmailStr
+from typing import Optional, List
+from datetime import datetime
+from models import ApplicationStatus
+
+
+# ── AUTH ─────────────────────────────────────────────────────────────────────
+
+class UserCreate(BaseModel):
+    # EmailStr validates format before it reaches any code.
+    # FastAPI returns HTTP 422 automatically if the email format is wrong.
+    email:     EmailStr
+    password:  str
+    full_name: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email:    EmailStr
+    password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type:   str  # Always "bearer"
+
+class UserOut(BaseModel):
+    id:         int
+    email:      str
+    full_name:  Optional[str]
+    created_at: datetime
+
+    class Config:
+        # from_attributes=True (Pydantic v2) allows creating from SQLAlchemy
+        # model instances: UserOut.model_validate(db_user_object)
+        from_attributes = True
+
+
+# ── APPLICATIONS ──────────────────────────────────────────────────────────────
+
+class ApplicationCreate(BaseModel):
+    # resume_file is handled separately as UploadFile, not in this schema
+    job_title: str
+    company:   str
+    jd_text:   str
+
+class ApplicationUpdate(BaseModel):
+    # All optional — PATCH semantics (only update what's provided)
+    status:    Optional[ApplicationStatus] = None
+    job_title: Optional[str] = None
+    company:   Optional[str] = None
+
+class DraftOut(BaseModel):
+    id:            int
+    fit_analysis:  Optional[str]
+    resume_rewrite: Optional[str]
+    cover_letter:  Optional[str]
+    interview_qa:  Optional[str]
+    generated_at:  Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+class ApplicationOut(BaseModel):
+    id:              int
+    job_title:       str
+    company:         str
+    jd_text:         str
+    original_resume: str
+    status:          ApplicationStatus
+    created_at:      datetime
+    updated_at:      datetime
+    draft:           Optional[DraftOut] = None  # None if not generated yet
+
+    class Config:
+        from_attributes = True</code></pre>
+  </div>
+
+  <div class="page-nav">
+    <a href="01-setup.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>Architecture &amp; Setup</span>
+    </a>
+    <a href="03-auth.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>Auth &amp; Utilities</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+backend/.env
+backend/venv/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+**/__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+Thumbs.db

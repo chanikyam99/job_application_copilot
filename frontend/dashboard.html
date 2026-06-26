@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Job Application Co-Pilot</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="page-wrapper">
+
+<!-- ── Navbar ── -->
+<nav class="navbar">
+  <a href="dashboard.html" class="navbar-brand">
+    <div class="logo-icon">🚀</div>Co-Pilot
+  </a>
+  <div class="navbar-right">
+    <span class="navbar-user" id="user-name-display"></span>
+    <button class="btn btn-secondary btn-sm" id="logout-btn">Sign Out</button>
+  </div>
+</nav>
+
+<main class="container" style="flex:1;">
+
+  <!-- ── Page heading + New Application CTA ── -->
+  <div style="padding:32px 0 24px; display:flex; align-items:center;
+              justify-content:space-between; flex-wrap:wrap; gap:16px;">
+    <div>
+      <h1 style="font-size:2rem; font-weight:700;">My Applications</h1>
+      <p>Track your job application pipeline</p>
+    </div>
+    <a href="new-application.html" class="btn btn-primary btn-lg">+ New Application</a>
+  </div>
+
+  <!-- ── Stats row ── -->
+  <div class="dash-stats">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-applied">—</div>
+      <div class="stat-label">Applied</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-interviewing">—</div>
+      <div class="stat-label">Interviewing</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-offers">—</div>
+      <div class="stat-label">Offers</div>
+    </div>
+  </div>
+
+  <!-- ── Filter bar ── -->
+  <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="not_yet">Not Applied</button>
+    <button class="filter-btn" data-filter="applied">Applied</button>
+    <button class="filter-btn" data-filter="interviewed">Interviewing</button>
+    <button class="filter-btn" data-filter="rejected">Rejected</button>
+    <button class="filter-btn" data-filter="offer">Offers</button>
+  </div>
+
+  <!-- ── Empty state ── -->
+  <div class="empty-state hidden" id="empty-state">
+    <div style="font-size:4rem; opacity:0.4;">📋</div>
+    <h3>No applications yet</h3>
+    <p>Create your first application to get started</p>
+    <a href="new-application.html" class="btn btn-primary" style="margin-top:16px;">
+      + New Application
+    </a>
+  </div>
+
+  <!-- ── Applications grid (populated by JS) ── -->
+  <div class="applications-grid" id="applications-grid"></div>
+
+</main>
+
+<script type="module">
+  import { api, auth, requireAuth, toast, formatDate } from './js/api.js';
+
+  requireAuth();   // redirect to index.html if no token
+
+  // Display user name in navbar
+  const user = auth.getUser();
+  if (user) document.getElementById('user-name-display').textContent =
+    user.full_name || user.email;
+
+  // Logout
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    auth.clear();
+    window.location.href = 'index.html';
+  });
+
+  let allApps = [], activeFilter = 'all';
+
+  const STATUS_LABELS = {
+    not_yet:    'Not Applied',
+    applied:    'Applied',
+    interviewed:'Interviewing',
+    rejected:   'Rejected',
+    offer:      'Offer',
+  };
+
+  async function loadApps() {
+    try {
+      allApps = await api.get('/applications/');
+      // Compute stats from cached data — no extra requests
+      document.getElementById('stat-total').textContent       = allApps.length;
+      document.getElementById('stat-applied').textContent     = allApps.filter(a => a.status === 'applied').length;
+      document.getElementById('stat-interviewing').textContent= allApps.filter(a => a.status === 'interviewed').length;
+      document.getElementById('stat-offers').textContent      = allApps.filter(a => a.status === 'offer').length;
+      renderApps();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  function renderApps() {
+    const filtered = activeFilter === 'all'
+      ? allApps
+      : allApps.filter(a => a.status === activeFilter);
+
+    const grid  = document.getElementById('applications-grid');
+    const empty = document.getElementById('empty-state');
+
+    if (!filtered.length) {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    grid.innerHTML = filtered.map(app => `
+      <div class="app-card" onclick="location.href='application.html?id=${app.id}'">
+        <div style="display:flex; align-items:flex-start; gap:14px; justify-content:space-between;">
+          <div style="display:flex; align-items:flex-start; gap:14px; flex:1;">
+            <div class="app-company-logo">${(app.company || '?')[0].toUpperCase()}</div>
+            <div>
+              <div style="font-size:1rem; font-weight:600; color:var(--color-text);">${app.job_title}</div>
+              <div style="font-size:0.875rem; color:var(--color-text-muted);">${app.company}</div>
+            </div>
+          </div>
+          <span class="badge badge-${app.status}">
+            ${STATUS_LABELS[app.status] || app.status}
+          </span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:12px;
+                    border-top:1px solid var(--color-border); font-size:0.78rem;
+                    color:var(--color-text-muted); margin-top:12px;">
+          <span>${formatDate(app.created_at)}</span>
+          <span>${app.draft ? '● AI kit ready' : '○ No kit yet'}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Wire up filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderApps();
+    });
+  });
+
+  loadApps();
+</script>
+</body>
+</html>

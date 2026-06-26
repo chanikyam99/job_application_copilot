@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>00 · Get Started on New Laptop — Fixes Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  .flow-step {
+    display: flex; gap: 16px; align-items: flex-start;
+    padding: 18px 0; border-bottom: 1px solid var(--border);
+  }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-num {
+    background: var(--primary); color: white;
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.82rem; font-weight: 700; flex-shrink: 0; margin-top: 2px;
+  }
+  .flow-step-content strong { display: block; font-size: 0.95rem; margin-bottom: 4px; }
+  .flow-step-content p { margin: 0; font-size: 0.875rem; }
+  .checklist { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+  .checklist li { display: flex; align-items: baseline; gap: 10px; font-size: 0.9rem; color: var(--text-muted); padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist .check { color: #10b981; font-weight: 700; font-size: 1rem; flex-shrink: 0; }
+  .swagger-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin: 16px 0 24px; }
+  .swagger-endpoint { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .swagger-endpoint .method { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .method-get    { color: #0369a1; }
+  .method-post   { color: #166534; }
+  .method-patch  { color: #92400e; }
+  .method-delete { color: #991b1b; }
+  .swagger-endpoint .path { font-family: 'Consolas', monospace; font-size: 0.8rem; color: var(--text); }
+  .swagger-endpoint .desc { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+  .error-table td:first-child { font-family: 'Consolas', 'Fira Code', monospace; font-size: 0.8rem; color: #be123c; background: #fff1f2; border-radius: 6px; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html">🏠 Overview</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="00-getting-started.html" class="active">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html">03 · Still To Do Manually</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 00 — Start Here</div>
+    <h1 class="page-title">Get Started on the New Laptop</h1>
+    <p class="page-subtitle">Copy the project across, create the virtual environment, set your API keys, and get both servers running. Do this before anything else.</p>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">⚠ Read this page top to bottom before typing any command</div>
+    <p>Steps 1 → 6 must be done in order. Skipping ahead (e.g. running uvicorn before installing packages) causes confusing errors that look unrelated to the real problem.</p>
+  </div>
+
+  <!-- ─── STEP 1 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">1</span> Copy the Project Folder</h2>
+
+  <p>You need the full project folder on the new laptop. Use whichever method is easiest:</p>
+
+  <table>
+    <thead><tr><th>Method</th><th>How</th><th>When to use</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>USB / external drive</td>
+        <td>Copy the entire <code>Job Application Copilot</code> folder to the drive, paste on new laptop</td>
+        <td>Quickest if you have a drive handy</td>
+      </tr>
+      <tr>
+        <td>GitHub (recommended)</td>
+        <td>Push on old laptop (Task 3 in section 03), then <code>git clone &lt;url&gt;</code> on new laptop</td>
+        <td>Best for submission — you get a clean repo without <code>venv/</code> or <code>.db</code> files</td>
+      </tr>
+      <tr>
+        <td>Google Drive / OneDrive</td>
+        <td>Zip and upload, download and unzip on new laptop</td>
+        <td>Works if you don't have a drive and haven't pushed to GitHub yet</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="danger-box">
+    <div class="danger-label">Never copy the venv/ folder</div>
+    <p>Virtual environments are machine-specific — the binaries inside are compiled for the exact OS and Python version on the original machine. Always create a fresh <code>venv</code> on the new laptop (Step 3 below). If you copied it accidentally, delete the <code>backend/venv/</code> folder before continuing.</p>
+  </div>
+
+  <!-- ─── STEP 2 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">2</span> Verify Python Is Installed</h2>
+
+  <p>Open a terminal (PowerShell on Windows, Terminal on Mac) and run:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">python --version
+# or on some systems:
+python3 --version</code></pre>
+  </div>
+
+  <p>You need <strong>Python 3.10 or higher</strong>. If Python is not installed, download it from <strong>python.org</strong> — use the installer, and tick "Add Python to PATH" during setup. After installing, close and reopen the terminal.</p>
+
+  <!-- ─── STEP 3 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">3</span> Create the Virtual Environment</h2>
+
+  <p>Navigate into the <code>backend/</code> folder and create a fresh <code>venv</code>:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — navigate to backend/ first <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># Replace the path with wherever you copied the project
+cd "C:\Users\YourName\Downloads\Job Application Copilot\Job Application Copilot\backend"
+
+# Create a new virtual environment
+python -m venv venv</code></pre>
+  </div>
+
+  <p>Then activate it. The command is different on Windows vs Mac:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — Windows (PowerShell) <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">venv\Scripts\activate</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — Mac / Linux <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">source venv/bin/activate</code></pre>
+  </div>
+
+  <p>After activating, your prompt should start with <code>(venv)</code>. Every terminal command in this guide assumes the venv is active. If you open a new terminal window, you must activate it again.</p>
+
+  <div class="note-box">
+    <div class="note-label">⚠ Windows execution policy error?</div>
+    <p>If you see <em>"running scripts is disabled on this system"</em>, run this once in PowerShell as Administrator:<br>
+    <code>Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser</code><br>
+    Then try activating again.</p>
+  </div>
+
+  <!-- ─── STEP 4 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">4</span> Install Packages</h2>
+
+  <p>With the venv active, install all dependencies from <code>requirements.txt</code>:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — from backend/ with venv active <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">pip install -r requirements.txt</code></pre>
+  </div>
+
+  <p>This installs FastAPI, SQLAlchemy, Groq SDK, pypdf, python-docx and everything else. It will take 1–3 minutes depending on internet speed. You should see a long list of "Successfully installed …" lines at the end.</p>
+
+  <div class="note-box">
+    <div class="note-label">⚠ pip not found?</div>
+    <p>Try <code>python -m pip install -r requirements.txt</code> instead. On some Windows setups <code>pip</code> is not on the PATH but <code>python -m pip</code> always works.</p>
+  </div>
+
+  <!-- ─── STEP 5 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">5</span> Create Your .env File</h2>
+
+  <p>The project needs a <code>backend/.env</code> file with your real API keys. The repo contains <code>.env.example</code> — copy it and fill in your values:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — from backend/ <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># Windows PowerShell:
+copy .env.example .env
+
+# Mac / Linux:
+cp .env.example .env</code></pre>
+  </div>
+
+  <p>Now open <code>backend/.env</code> in any text editor and fill in the two real values:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/.env — fill in your real values <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">SECRET_KEY=paste-any-long-random-string-here-at-least-32-chars
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+GROQ_API_KEY=gsk_your_actual_groq_key_here
+DATABASE_URL=sqlite:///./job_copilot.db</code></pre>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">How to get a Groq API key</div>
+    <p>
+      1. Go to <strong>console.groq.com</strong> → Sign up (free, no credit card needed)<br>
+      2. Click <strong>API Keys</strong> in the left sidebar → <strong>Create API Key</strong><br>
+      3. Copy the key (starts with <code>gsk_</code>) → paste it as the value of <code>GROQ_API_KEY</code><br>
+      4. For <code>SECRET_KEY</code> use any random string — e.g. mash the keyboard for 40 chars: <code>kj4h8FpQ2mNxR9vT1wL6aZ3cE7bY0dU5iO</code>
+    </p>
+  </div>
+
+  <div class="danger-box">
+    <div class="danger-label">Never commit .env to git</div>
+    <p>The <code>.env</code> file contains your real Groq API key. It is listed in <code>.gitignore</code> and must never be pushed to GitHub. The safe file to commit is <code>.env.example</code> (which has placeholder values). If you accidentally push your real key, rotate it immediately on console.groq.com.</p>
+  </div>
+
+  <!-- ─── STEP 6 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">6</span> Start the Backend</h2>
+
+  <p>From <code>backend/</code> with the venv active, run:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — backend <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">uvicorn main:app --reload --port 8000</code></pre>
+  </div>
+
+  <p>You should see this output — keep this terminal open, do not close it:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">expected output <span class="lang">text</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-text">INFO:     Will watch for changes in these directories: [...]
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [...]
+INFO:     Application startup complete.</code></pre>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">⚠ Port 8000 already in use?</div>
+    <p>Another process is bound to port 8000. On Windows: open Task Manager → Details tab → find and end any <code>python.exe</code> processes. Or use a different port: <code>uvicorn main:app --reload --port 8001</code> — then also update the <code>BASE_URL</code> in <code>frontend/js/api.js</code> from <code>:8000</code> to <code>:8001</code>.</p>
+  </div>
+
+  <!-- ─── STEP 7 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">7</span> Verify the API in Swagger</h2>
+
+  <p>Before touching the frontend, confirm the backend is working. Open <strong>http://localhost:8000/docs</strong> in your browser — you should see the FastAPI Swagger UI listing all endpoints.</p>
+
+  <div class="swagger-grid">
+    <div class="swagger-endpoint">
+      <div class="method method-post">POST</div>
+      <div class="path">/auth/signup</div>
+      <div class="desc">Create a test account</div>
+    </div>
+    <div class="swagger-endpoint">
+      <div class="method method-post">POST</div>
+      <div class="path">/auth/login</div>
+      <div class="desc">Get a JWT token</div>
+    </div>
+    <div class="swagger-endpoint">
+      <div class="method method-get">GET</div>
+      <div class="path">/auth/me</div>
+      <div class="desc">Confirm auth works</div>
+    </div>
+    <div class="swagger-endpoint">
+      <div class="method method-get">GET</div>
+      <div class="path">/applications/</div>
+      <div class="desc">Should return []</div>
+    </div>
+    <div class="swagger-endpoint">
+      <div class="method method-post">POST</div>
+      <div class="path">/applications/</div>
+      <div class="desc">Upload PDF + job details</div>
+    </div>
+    <div class="swagger-endpoint">
+      <div class="method method-post">POST</div>
+      <div class="path">/applications/{id}/generate</div>
+      <div class="desc">Run AI pipeline (~30s)</div>
+    </div>
+    <div class="swagger-endpoint">
+      <div class="method method-patch">PATCH</div>
+      <div class="path">/applications/{id}/status</div>
+      <div class="desc">Update status field</div>
+    </div>
+    <div class="swagger-endpoint">
+      <div class="method method-get">GET</div>
+      <div class="path">/applications/{id}/download/cover-letter</div>
+      <div class="desc">Download .docx</div>
+    </div>
+  </div>
+
+  <h3>How to authorize in Swagger (test auth end-to-end)</h3>
+  <ol>
+    <li>Click <strong>POST /auth/signup</strong> → Try it out → enter any email + password → Execute</li>
+    <li>Click <strong>POST /auth/login</strong> → same credentials → Execute → copy the <code>access_token</code> from the response</li>
+    <li>Click the <strong>Authorize</strong> button (top right of the page)</li>
+    <li>In the popup, type <code>Bearer </code> then paste your token → click Authorize</li>
+    <li>Now click <strong>GET /applications/</strong> → Try it out → Execute — should return <code>[]</code> (empty list, not 401)</li>
+  </ol>
+
+  <p>If all of that works, the backend is good. Proceed to Step 8.</p>
+
+  <!-- ─── STEP 8 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">8</span> Start the Frontend</h2>
+
+  <p>Open a <strong>second terminal window</strong> (leave the backend running in the first). Navigate to the <code>frontend/</code> folder:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — second window, frontend only <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">cd "C:\Users\YourName\Downloads\Job Application Copilot\Job Application Copilot\frontend"
+
+python -m http.server 3000</code></pre>
+  </div>
+
+  <p>Open <strong>http://localhost:3000</strong> in your browser. You should see the login/signup page.</p>
+
+  <div class="why-box">
+    <div class="why-label">Why not just open index.html directly?</div>
+    <p>Opening <code>index.html</code> via <code>file://</code> in your browser causes CORS errors — the browser blocks JS module imports from <code>file://</code> paths. The Python HTTP server serves everything over <code>http://localhost</code> which the browser treats like a real site. Always use the server.</p>
+  </div>
+
+  <!-- ─── STEP 9 ────────────────────────────────────────────────────────── -->
+  <h2><span class="step-num">9</span> Test the Full Flow</h2>
+
+  <p>Walk through this once to confirm everything works before starting the submission tasks:</p>
+
+  <div style="margin: 20px 0;">
+    <div class="flow-step">
+      <div class="flow-num">1</div>
+      <div class="flow-step-content">
+        <strong>Sign up at http://localhost:3000</strong>
+        <p>Click "Create Account", enter email + password (min 8 chars). You should be redirected to the dashboard automatically.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">2</div>
+      <div class="flow-step-content">
+        <strong>Create a new application</strong>
+        <p>Click "+ New Application". Step 1: drag a text-based PDF onto the drop zone (must be a digitally created PDF, not a scanned image). Step 2: fill in job title, company, and paste a full job description. Click "Generate My Kit".</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">3</div>
+      <div class="flow-step-content">
+        <strong>Wait for generation (~20–30 seconds)</strong>
+        <p>Watch the backend terminal — you should see Groq API calls logged. Agents 2, 3, 4 run in parallel so the total time is ~30s not ~90s. You will be redirected to <code>application.html</code> when done.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">4</div>
+      <div class="flow-step-content">
+        <strong>Check all 4 tabs</strong>
+        <p>Fit Analysis: score ring + green/red requirement tags. Resume: before/after diff view. Cover Letter: readable letter + Download .docx button. Interview Prep: 10 expandable Q&amp;As.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">5</div>
+      <div class="flow-step-content">
+        <strong>Update the status dropdown</strong>
+        <p>Change from "Not Applied" to "Applied". A "Saved ✓" toast should flash briefly. If it flashes, the status endpoint is working.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">6</div>
+      <div class="flow-step-content">
+        <strong>Download the cover letter</strong>
+        <p>On the Cover Letter tab, click "Download .docx". A <code>.docx</code> file should appear in your Downloads folder. Open it in Word or Google Docs to confirm the text is there.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num">7</div>
+      <div class="flow-step-content">
+        <strong>Test a Regenerate button</strong>
+        <p>Click "↺ Regenerate" on any tab. You should see a "Regenerating…" toast, wait ~10–15 seconds, then see "Regenerated!" and fresh content. Open DevTools (F12) → Network tab — the call should return HTTP 200, not 400 or 422.</p>
+      </div>
+    </div>
+  </div>
+
+  <p>If all 7 steps pass, the core app is working. Move on to section 03 to finish the remaining submission tasks.</p>
+
+  <!-- ─── COMMON ERRORS ──────────────────────────────────────────────────── -->
+  <h2>Common Errors &amp; Fixes</h2>
+
+  <table>
+    <thead><tr><th>Error</th><th>Root cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="error-table">CORS error in browser console</td>
+        <td>Backend is not running — browser can't reach localhost:8000</td>
+        <td>Start uvicorn (Step 6) and keep that terminal open. CORS errors almost always mean "no backend", not an actual CORS config problem.</td>
+      </tr>
+      <tr>
+        <td class="error-table">ModuleNotFoundError: groq / fastapi</td>
+        <td>Packages not installed, or venv not activated</td>
+        <td>Activate venv first (<code>venv\Scripts\activate</code>), then <code>pip install -r requirements.txt</code></td>
+      </tr>
+      <tr>
+        <td class="error-table">Groq 401 Unauthorized</td>
+        <td>GROQ_API_KEY in .env is missing, wrong, or expired</td>
+        <td>Go to console.groq.com → API Keys → create a new key → paste into <code>backend/.env</code> → restart uvicorn</td>
+      </tr>
+      <tr>
+        <td class="error-table">Could not extract text from PDF</td>
+        <td>The PDF is a scanned image — pypdf can only read text layers</td>
+        <td>Use a PDF exported from Word, Google Docs, or any digital source. Test by selecting text in the PDF — if you can't select, pypdf can't read it either.</td>
+      </tr>
+      <tr>
+        <td class="error-table">sqlite3.OperationalError: no such table</td>
+        <td>Database file exists but tables weren't created</td>
+        <td>Delete <code>backend/job_copilot.db</code> and restart uvicorn — <code>main.py</code> calls <code>Base.metadata.create_all()</code> on startup which recreates tables.</td>
+      </tr>
+      <tr>
+        <td class="error-table">401 on every request after login</td>
+        <td>JWT expired, or SECRET_KEY changed between sessions</td>
+        <td>Open DevTools → Application → Local Storage → delete all entries for localhost:3000. Refresh and log in again.</td>
+      </tr>
+      <tr>
+        <td class="error-table">Port 8000 already in use</td>
+        <td>Previous uvicorn session still running</td>
+        <td>Windows: Task Manager → Details → kill python.exe. Or run uvicorn on port 8001 and update BASE_URL in <code>frontend/js/api.js</code>.</td>
+      </tr>
+      <tr>
+        <td class="error-table">Page loads but JS errors / blank tabs</td>
+        <td>Frontend opened via file:// not http://localhost:3000</td>
+        <td>Always serve via <code>python -m http.server 3000</code> from the <code>frontend/</code> folder. Never double-click the HTML file directly.</td>
+      </tr>
+      <tr>
+        <td class="error-table">Generation hangs indefinitely</td>
+        <td>Groq API timeout or rate limit hit</td>
+        <td>Check the backend terminal for the Python traceback. If it's a rate limit, wait 60 seconds and try again. Groq free tier resets quickly.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ─── FILE CHECKLIST ────────────────────────────────────────────────── -->
+  <h2>File Checklist — Confirm These Exist Before Starting</h2>
+
+  <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top:8px;">
+    <div>
+      <h3 style="margin-bottom:14px;">Backend</h3>
+      <ul class="checklist">
+        <li><span class="check">✓</span><code>main.py</code></li>
+        <li><span class="check">✓</span><code>database.py</code></li>
+        <li><span class="check">✓</span><code>models.py</code></li>
+        <li><span class="check">✓</span><code>schemas.py</code></li>
+        <li><span class="check">✓</span><code>auth.py</code></li>
+        <li><span class="check">✓</span><code>requirements.txt</code></li>
+        <li><span class="check">✓</span><code>.env.example</code></li>
+        <li><span class="check">✓</span><code>.env</code> <span style="font-size:0.78rem;">(create from .env.example — real keys)</span></li>
+        <li><span class="check">✓</span><code>agents/orchestrator.py</code></li>
+        <li><span class="check">✓</span><code>routers/auth_router.py</code></li>
+        <li><span class="check">✓</span><code>routers/applications_router.py</code></li>
+        <li><span class="check">✓</span><code>utils/pdf_parser.py</code></li>
+        <li><span class="check">✓</span><code>utils/docx_generator.py</code></li>
+      </ul>
+    </div>
+    <div>
+      <h3 style="margin-bottom:14px;">Frontend</h3>
+      <ul class="checklist">
+        <li><span class="check">✓</span><code>js/api.js</code></li>
+        <li><span class="check">✓</span><code>index.html</code></li>
+        <li><span class="check">✓</span><code>dashboard.html</code></li>
+        <li><span class="check">✓</span><code>new-application.html</code></li>
+        <li><span class="check">✓</span><code>application.html</code></li>
+      </ul>
+
+      <h3 style="margin:24px 0 14px;">Auto-generated (do not create)</h3>
+      <ul class="checklist">
+        <li><span style="color:#64748b;">○</span><code>venv/</code> — created by <code>python -m venv venv</code></li>
+        <li><span style="color:#64748b;">○</span><code>job_copilot.db</code> — created on first uvicorn start</li>
+        <li><span style="color:#64748b;">○</span><code>__pycache__/</code> — created by Python automatically</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─── QUICK REFERENCE ───────────────────────────────────────────────── -->
+  <h2>Quick Reference Card</h2>
+
+  <table>
+    <thead><tr><th>What</th><th>Command / URL</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Activate venv (Windows)</td><td><code>venv\Scripts\activate</code></td><td>Run from <code>backend/</code></td></tr>
+      <tr><td>Activate venv (Mac/Linux)</td><td><code>source venv/bin/activate</code></td><td>Run from <code>backend/</code></td></tr>
+      <tr><td>Install packages</td><td><code>pip install -r requirements.txt</code></td><td>Only needed once per laptop</td></tr>
+      <tr><td>Start backend</td><td><code>uvicorn main:app --reload --port 8000</code></td><td>From <code>backend/</code>, venv active</td></tr>
+      <tr><td>Start frontend</td><td><code>python -m http.server 3000</code></td><td>From <code>frontend/</code>, new terminal</td></tr>
+      <tr><td>App UI</td><td><strong>http://localhost:3000</strong></td><td>Login page</td></tr>
+      <tr><td>Swagger (API docs)</td><td><strong>http://localhost:8000/docs</strong></td><td>Test endpoints directly</td></tr>
+      <tr><td>Reset the database</td><td>Delete <code>backend/job_copilot.db</code> → restart uvicorn</td><td>Wipes all data — start fresh</td></tr>
+    </tbody>
+  </table>
+
+  <div class="done-box">
+    <div class="done-label">✅ Ready to continue when</div>
+    <p>
+      Both terminals are running (uvicorn on 8000, http.server on 3000).<br>
+      You can log in at http://localhost:3000.<br>
+      You can create an application and see all 4 tabs populated.<br>
+      Status dropdown saves without a 404 in DevTools Network tab.
+    </p>
+  </div>
+
+  <div class="page-nav">
+    <a href="index.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>Overview</span>
+    </a>
+    <a href="01-bugs-applied.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>01 · P0 Bugs — Already Fixed</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 · Auth &amp; Utilities — Co-Pilot Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Sections</div>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="01-setup.html">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html">02 · Database &amp; Models</a>
+    <a href="03-auth.html" class="active">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 03</div>
+    <h1 class="page-title">Auth &amp; Utilities</h1>
+    <p class="page-subtitle">JWT authentication, PDF text extraction, and .docx generation. Three utility files used by the routers.</p>
+  </div>
+
+  <!-- auth.py -->
+  <h2><span class="step-num">1</span> auth.py — JWT Authentication</h2>
+
+  <div class="why-box">
+    <div class="why-label">WHY JWT (JSON Web Tokens)?</div>
+    <p>A JWT is a signed token the server issues at login. The frontend stores it in localStorage and sends it as <code>Authorization: Bearer &lt;token&gt;</code> on every request. The server verifies the signature — no database lookup needed to authenticate. This is called <strong>stateless auth</strong>: the server has no session table, no session store.</p>
+    <p>The token contains the user's email as the <code>sub</code> (subject) claim. Since it's signed with <code>SECRET_KEY</code>, the client can't modify it — any tampering breaks the signature and returns 401.</p>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY bcrypt for password hashing?</div>
+    <p>bcrypt is intentionally slow (designed to take ~100ms per hash). This makes brute-force attacks expensive — an attacker testing 1 million passwords at 100ms each would need 100,000 seconds. MD5 or SHA256 hash in microseconds, making them trivially brute-forceable. Never store passwords in plaintext or with fast hashes.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/auth.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from datetime import datetime, timedelta
+from typing import Optional
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
+from database import get_db
+import models
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-fallback-key-CHANGE-IN-PROD")
+ALGORITHM  = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "10080"))
+
+# CryptContext with bcrypt: handles hashing and verification.
+# deprecated="auto" upgrades old hashes on the next login automatically.
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# OAuth2PasswordBearer tells FastAPI: look for Bearer token in Authorization header.
+# tokenUrl only affects the /docs Swagger "Authorize" button — points to login endpoint.
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+
+
+def verify_password(plain_password: str, hashed_password: str) -&gt; bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -&gt; str:
+    return pwd_context.hash(password)
+
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -&gt; str:
+    """
+    Creates a signed JWT.
+    data should be {"sub": user_email} — "sub" is the JWT standard claim for subject.
+    The token is signed with SECRET_KEY. Anyone with the key can verify it,
+    but only the server has the key, so clients cannot forge tokens.
+    """
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+) -&gt; models.User:
+    """
+    FastAPI dependency used on every protected endpoint.
+    Decodes the JWT, extracts email, looks up user in DB.
+    Raises 401 if anything fails.
+
+    Usage in any router:
+        current_user: models.User = Depends(auth.get_current_user)
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(models.User).filter(models.User.email == email).first()
+    if user is None:
+        raise credentials_exception
+    return user</code></pre>
+  </div>
+
+  <!-- pdf_parser.py -->
+  <h2><span class="step-num">2</span> utils/pdf_parser.py — PDF Text Extraction</h2>
+
+  <div class="why-box">
+    <div class="why-label">WHY io.BytesIO instead of saving the file to disk?</div>
+    <p>FastAPI gives you the uploaded file as bytes via <code>await resume_file.read()</code>. Wrapping it in <code>io.BytesIO()</code> makes it behave like a file object in memory — no temp file created, no disk write, no cleanup needed. Faster, simpler, and works in read-only environments like some cloud platforms.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/utils/pdf_parser.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from pypdf import PdfReader
+import io
+import re
+
+
+def extract_text_from_pdf(file_bytes: bytes) -&gt; str:
+    """
+    Extracts plain text from PDF bytes.
+    Returns the full text as a single string with page breaks as newlines.
+    """
+    reader = PdfReader(io.BytesIO(file_bytes))
+    pages_text = []
+    for page in reader.pages:
+        text = page.extract_text()
+        if text:
+            pages_text.append(text)
+    return "\n".join(pages_text).strip()
+
+
+def parse_resume_sections(text: str) -&gt; dict:
+    """
+    Best-effort heuristic to split resume into named sections.
+    Resumes have no standard format, so this is approximate.
+
+    Used only for the upload preview in new-application.html.
+    The LLM agents receive the full text regardless.
+    """
+    sections = {
+        "header":     [],
+        "summary":    [],
+        "experience": [],
+        "education":  [],
+        "skills":     [],
+        "other":      [],
+    }
+
+    section_keywords = {
+        "summary":    ["summary", "objective", "profile", "about me"],
+        "experience": ["experience", "work history", "employment", "professional background"],
+        "education":  ["education", "academic", "qualification", "degree"],
+        "skills":     ["skills", "technical skills", "competencies", "technologies"],
+    }
+
+    current_section = "header"
+
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            continue
+
+        # Check if this line is a section header:
+        # short (under 60 chars) AND matches a known keyword
+        if len(stripped) &lt; 60:
+            line_lower = stripped.lower()
+            matched = False
+            for section_name, keywords in section_keywords.items():
+                if any(kw in line_lower for kw in keywords):
+                    current_section = section_name
+                    matched = True
+                    break
+            if matched:
+                continue
+
+        sections[current_section].append(stripped)
+
+    return {k: "\n".join(v) for k, v in sections.items()}</code></pre>
+  </div>
+
+  <!-- docx_generator.py -->
+  <h2><span class="step-num">3</span> utils/docx_generator.py — Cover Letter Download</h2>
+
+  <div class="why-box">
+    <div class="why-label">WHY return bytes instead of saving a file?</div>
+    <p>FastAPI's <code>Response(content=bytes)</code> sends file bytes directly to the browser as a download. No temp file created on disk, no cleanup needed. The browser sees the <code>Content-Disposition: attachment</code> header and downloads it automatically. This works in serverless and read-only environments too.</p>
+    <p>WHY <strong>.docx</strong> instead of PDF? Users will want to edit the cover letter after downloading. .docx opens in Word, Google Docs, and LibreOffice. PDF requires re-generation for any edits.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/utils/docx_generator.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from docx import Document
+from docx.shared import Inches, Pt, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+import io
+
+
+def generate_cover_letter_docx(cover_letter_text: str, job_title: str, company: str) -&gt; bytes:
+    """
+    Generates a formatted .docx cover letter.
+    Returns bytes so FastAPI can stream it as a file download.
+    """
+    doc = Document()
+
+    # Standard professional margins
+    for section in doc.sections:
+        section.top_margin    = Inches(1.0)
+        section.bottom_margin = Inches(1.0)
+        section.left_margin   = Inches(1.25)
+        section.right_margin  = Inches(1.25)
+
+    # Heading
+    title_para = doc.add_heading(level=0)
+    title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = title_para.add_run("Cover Letter")
+    run.font.size      = Pt(16)
+    run.font.color.rgb = RGBColor(0x1e, 0x40, 0xaf)  # dark blue
+
+    subtitle = doc.add_paragraph()
+    subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    sub_run = subtitle.add_run(f"{job_title}  ·  {company}")
+    sub_run.font.size      = Pt(11)
+    sub_run.font.color.rgb = RGBColor(0x64, 0x74, 0x8b)
+
+    doc.add_paragraph()  # blank line spacer
+
+    # Body — split on double newlines (paragraph breaks)
+    paragraphs = [p.strip() for p in cover_letter_text.split("\n\n") if p.strip()]
+    for para_text in paragraphs:
+        para = doc.add_paragraph()
+        run  = para.add_run(para_text)
+        run.font.size                       = Pt(11)
+        para.paragraph_format.space_after   = Pt(10)
+        para.paragraph_format.line_spacing  = Pt(14)
+
+    # Save to in-memory bytes buffer
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+    return buf.getvalue()</code></pre>
+  </div>
+
+  <div class="page-nav">
+    <a href="02-backend-core.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>Database &amp; Models</span>
+    </a>
+    <a href="04-agents.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>Multi-Agent Pipeline</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

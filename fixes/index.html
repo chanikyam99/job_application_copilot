@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fixes & Remaining Work — Job Application Co-Pilot</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html" class="active">🏠 Overview</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="00-getting-started.html">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html">03 · Still To Do Manually</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Gap Fix — Capstone Submission</div>
+    <h1 class="page-title">Fixes &amp; Remaining Work</h1>
+    <p class="page-subtitle">This folder documents every gap between the capstone requirements and the current codebase. Use it as a checklist on the other laptop to verify the state of every file.</p>
+  </div>
+
+  <div class="done-box">
+    <div class="done-label">✅ Already Applied in This Repo</div>
+    <p>The changes in sections 01 and 02 have been made directly to the source files on this machine. When you clone or copy the repo to the other laptop, those changes will already be in place. You do NOT need to re-apply them — just verify and continue from section 03.</p>
+  </div>
+
+  <h2>What Was Changed Directly</h2>
+
+  <table>
+    <thead><tr><th>File</th><th>What Changed</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>backend/agents/orchestrator.py</td>
+        <td>Removed unused <code>from unittest import result</code> import</td>
+        <td><span class="chip chip-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>backend/.env.example</td>
+        <td>Created this file (required for submission)</td>
+        <td><span class="chip chip-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>frontend/js/api.js</td>
+        <td>Added <code>getBlob()</code> method for binary file downloads</td>
+        <td><span class="chip chip-done">Done</span></td>
+      </tr>
+      <tr>
+        <td>frontend/application.html</td>
+        <td>Fixed 6 runtime bugs + added 3 missing features (see sections 01 &amp; 02)</td>
+        <td><span class="chip chip-done">Done</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>What Still Needs Manual Work</h2>
+
+  <table>
+    <thead><tr><th>Task</th><th>Where</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Resume PDF download endpoint + button</td>
+        <td>backend router + application.html</td>
+        <td><span class="chip chip-todo">To Do</span></td>
+      </tr>
+      <tr>
+        <td>Parsed resume preview on upload step</td>
+        <td>new-application.html + backend endpoint</td>
+        <td><span class="chip chip-todo">To Do</span></td>
+      </tr>
+      <tr>
+        <td>JD URL scraping (LinkedIn bonus)</td>
+        <td>backend utility + new-application.html</td>
+        <td><span class="chip chip-todo">To Do</span></td>
+      </tr>
+      <tr>
+        <td>Alembic migrations folder</td>
+        <td>backend/ — run commands in terminal</td>
+        <td><span class="chip chip-manual">Manual Commands</span></td>
+      </tr>
+      <tr>
+        <td>GitHub repo setup</td>
+        <td>Terminal — git init + push</td>
+        <td><span class="chip chip-manual">Manual Commands</span></td>
+      </tr>
+      <tr>
+        <td>Frontend deployment (Vercel/Render static)</td>
+        <td>Vercel dashboard — link GitHub repo</td>
+        <td><span class="chip chip-manual">Manual Steps</span></td>
+      </tr>
+      <tr>
+        <td>Project video recording</td>
+        <td>Loom / OBS — under 5 minutes</td>
+        <td><span class="chip chip-todo">To Do</span></td>
+      </tr>
+      <tr>
+        <td>Presentation slides</td>
+        <td>Gamma / Canva / Google Slides</td>
+        <td><span class="chip chip-todo">To Do</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Guide Sections — Follow in Order</h2>
+  <div class="card-grid">
+    <a href="00-getting-started.html" class="index-card">
+      <div class="card-icon">💻</div>
+      <div class="card-num">Section 00 — Start Here</div>
+      <div class="card-title">Get Started — New Laptop</div>
+      <div class="card-desc">Copy project, create venv, install packages, set API keys, start both servers, verify the full flow works.</div>
+    </a>
+    <a href="01-bugs-applied.html" class="index-card">
+      <div class="card-icon">🐛</div>
+      <div class="card-num">Section 01</div>
+      <div class="card-title">P0 Bugs — Already Fixed</div>
+      <div class="card-desc">6 runtime crashes already applied to source files. Read to verify and understand what changed.</div>
+    </a>
+    <a href="02-features-applied.html" class="index-card">
+      <div class="card-icon">✨</div>
+      <div class="card-num">Section 02</div>
+      <div class="card-title">Features — Already Added</div>
+      <div class="card-desc">3 missing features already in the codebase: Generate Kit button, Fit regen button, skills + keywords display.</div>
+    </a>
+    <a href="03-todo-manual.html" class="index-card">
+      <div class="card-icon">📋</div>
+      <div class="card-num">Section 03</div>
+      <div class="card-title">Still To Do Manually</div>
+      <div class="card-desc">Everything left before submission: resume download, Alembic, GitHub push, video, slides. Work through in order.</div>
+    </a>
+  </div>
+
+  <div class="page-nav">
+    <a href="00-getting-started.html" class="nav-card next">
+      <span class="nav-dir">→ Start Here</span>
+      <span>00 · Get Started — New Laptop</span>
+    </a>
+  </div>
+</main>
+</body>
+</html>

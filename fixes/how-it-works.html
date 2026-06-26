@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>How It Works — End-to-End Flow</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html">🏠 Overview</a>
+    <a href="how-it-works.html" class="active">🔍 How It Works</a>
+    <a href="00-getting-started.html">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html">03 · Still To Do Manually</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">End-to-End Flow</div>
+    <h1 class="page-title">How It Works</h1>
+    <p class="page-subtitle">From browser click to AI output — the full user journey and what happens in the code at each step.</p>
+  </div>
+
+  <!-- ─── ARCHITECTURE ──────────────────────────────────────────────────── -->
+  <h2><span class="step-num">1</span> System Architecture</h2>
+
+  <p>Two servers run simultaneously. The browser talks to both.</p>
+
+  <div style="display:flex; flex-direction:column; gap:14px; font-family:monospace; font-size:0.85rem; margin:24px 0 32px;">
+
+    <div style="border:2px solid #3b82f6; border-radius:12px; padding:18px 22px; background:rgba(59,130,246,0.04);">
+      <div style="color:#60a5fa; font-weight:700; margin-bottom:10px;">🌐 BROWSER &nbsp;·&nbsp; <span style="font-weight:400; color:#94a3b8;">localhost:3000</span> <span style="color:#64748b; font-size:0.75rem;">(python -m http.server)</span></div>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:8px;">
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-size:0.78rem; font-weight:600;">index.html</div>
+          <div style="color:#94a3b8; font-size:0.7rem; margin-top:4px;">Login / Signup</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-size:0.78rem; font-weight:600;">dashboard.html</div>
+          <div style="color:#94a3b8; font-size:0.7rem; margin-top:4px;">App List</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-size:0.78rem; font-weight:600;">new-application.html</div>
+          <div style="color:#94a3b8; font-size:0.7rem; margin-top:4px;">Upload + Generate</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:10px; text-align:center;">
+          <div style="color:#f1f5f9; font-size:0.78rem; font-weight:600;">application.html</div>
+          <div style="color:#94a3b8; font-size:0.7rem; margin-top:4px;">View Results</div>
+        </div>
+      </div>
+      <div style="text-align:center; color:#64748b; margin-top:12px; font-size:0.75rem;">↕ &nbsp; all fetch() calls go through api.js with <code style="background:#0f172a; color:#7c3aed; border:1px solid #334155; font-size:0.72rem;">Authorization: Bearer &lt;token&gt;</code></div>
+    </div>
+
+    <div style="text-align:center; color:#64748b; font-size:1.4rem;">↕</div>
+
+    <div style="border:2px solid #10b981; border-radius:12px; padding:18px 22px; background:rgba(16,185,129,0.04);">
+      <div style="color:#34d399; font-weight:700; margin-bottom:10px;">⚡ FASTAPI &nbsp;·&nbsp; <span style="font-weight:400; color:#94a3b8;">localhost:8000</span> <span style="color:#64748b; font-size:0.75rem;">(uvicorn main:app --reload)</span></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:12px;">
+          <div style="color:#60a5fa; font-size:0.78rem; font-weight:600; margin-bottom:6px;">/auth/*</div>
+          <div style="color:#94a3b8; font-size:0.75rem; line-height:1.9;">POST /signup<br>POST /login → JWT<br>GET /me</div>
+        </div>
+        <div style="background:#1e293b; border:1px solid #334155; border-radius:8px; padding:12px;">
+          <div style="color:#60a5fa; font-size:0.78rem; font-weight:600; margin-bottom:6px;">/applications/*</div>
+          <div style="color:#94a3b8; font-size:0.75rem; line-height:1.9;">GET / POST / DELETE<br>POST /{id}/generate<br>PATCH /{id}/status<br>POST /{id}/regenerate/{section}<br>GET /{id}/download/cover-letter</div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px;">
+        <div style="background:#0f172a; border:1px solid #7c3aed; border-radius:8px; padding:12px;">
+          <div style="color:#a78bfa; font-size:0.78rem; font-weight:600; margin-bottom:6px;">🤖 4-Agent Pipeline</div>
+          <div style="color:#94a3b8; font-size:0.75rem; line-height:1.8;">Agent 1 runs first (sequential)<br>Agents 2+3+4 run in parallel<br>via asyncio.gather() — ~15s total</div>
+        </div>
+        <div style="background:#0f172a; border:1px solid #f59e0b; border-radius:8px; padding:12px;">
+          <div style="color:#fbbf24; font-size:0.78rem; font-weight:600; margin-bottom:6px;">🗄️ SQLite DB</div>
+          <div style="color:#94a3b8; font-size:0.75rem; line-height:1.8;">users table<br>applications table<br>drafts table (JSON text columns)</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align:center; color:#64748b; font-size:1.4rem;">↕</div>
+
+    <div style="border:2px solid #7c3aed; border-radius:12px; padding:14px 22px; background:rgba(124,58,237,0.04); display:flex; align-items:center; gap:14px;">
+      <div style="font-size:1.8rem; flex-shrink:0;">🧠</div>
+      <div>
+        <div style="color:#a78bfa; font-weight:700;">Groq API — llama-3.3-70b-versatile</div>
+        <div style="color:#94a3b8; font-size:0.82rem; margin-top:4px;">Free tier · ~3–5s per agent call · accessed via AsyncGroq client</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FLOW 1: LOGIN ─────────────────────────────────────────────────── -->
+  <h2><span class="step-num">2</span> Flow 1 — Sign Up / Login</h2>
+
+  <div style="display:flex; flex-direction:column; gap:2px; margin:20px 0 32px;">
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong>User fills email + password on index.html</strong><br><span style="font-size:0.83rem; color:#64748b;">JS calls <code>api.post('/auth/login', {email, password})</code> — no auth header needed here.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div><strong>FastAPI verifies password with bcrypt, creates a JWT token</strong><br><span style="font-size:0.83rem; color:#64748b;"><code>jwt.encode({"sub": email, "exp": now + 7 days}, SECRET_KEY)</code> — signed, not encrypted. Never stores sessions.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#3b82f6; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>JS stores the token: <code>localStorage.setItem('token', ...)</code></strong><br><span style="font-size:0.83rem; color:#64748b;">Persists across page loads. From now on, every <code>api.*</code> call automatically adds <code>Authorization: Bearer &lt;token&gt;</code>.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:0 0 10px 10px;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">✓</div>
+      <div><strong>Redirected to dashboard.html</strong><br><span style="font-size:0.83rem; color:#64748b;">Any 401 response from any endpoint auto-clears localStorage and redirects back to login.</span></div>
+    </div>
+  </div>
+
+  <!-- ─── FLOW 2: CREATE APPLICATION ───────────────────────────────────── -->
+  <h2><span class="step-num">3</span> Flow 2 — Create an Application</h2>
+
+  <div style="display:flex; flex-direction:column; gap:2px; margin:20px 0 32px;">
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong>Step 1 — User drops a PDF onto the upload zone</strong><br><span style="font-size:0.83rem; color:#64748b;">File is held in browser memory. Nothing uploaded yet.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div><strong>Step 2 — User fills job title, company, pastes the full JD</strong><br><span style="font-size:0.83rem; color:#64748b;">More detailed JD = better agent output. Copy directly from a LinkedIn job post.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>Click "Generate My Kit" — JS builds a FormData + posts to <code>POST /applications/</code></strong><br><span style="font-size:0.83rem; color:#64748b;">FastAPI receives the PDF binary, runs it through <code>pypdf</code>, saves the extracted text as <code>original_resume</code>. The raw PDF is not stored.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">4</div>
+      <div><strong>Immediately calls <code>POST /applications/{id}/generate</code> — loading screen shows</strong><br><span style="font-size:0.83rem; color:#64748b;">The AI pipeline runs (~15–30s). Step 3 of the wizard shows animated progress.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:0 0 10px 10px;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">✓</div>
+      <div><strong>Redirected to <code>application.html?id={id}</code></strong><br><span style="font-size:0.83rem; color:#64748b;">All 4 tabs are populated with AI output from the database.</span></div>
+    </div>
+  </div>
+
+  <!-- ─── FLOW 3: AI PIPELINE ───────────────────────────────────────────── -->
+  <h2><span class="step-num">4</span> Flow 3 — The AI Generation Pipeline</h2>
+
+  <p>This is the core of the app. One API call triggers 4 LLM agents. Agent 1 runs first; Agents 2, 3, 4 run simultaneously with <code>asyncio.gather()</code>.</p>
+
+  <div style="display:flex; flex-direction:column; gap:2px; margin:20px 0 24px;">
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong>Agent 1 — Fit Analyst (sequential, ~5s)</strong><br><span style="font-size:0.83rem; color:#64748b;">Compares resume vs JD. Returns <code>{match_score, matching_requirements, missing_requirements, skills_to_emphasize, key_keywords}</code>. Its output feeds Agents 2, 3, 4.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div>
+        <strong>Agents 2 + 3 + 4 launch in parallel via <code>asyncio.gather()</code> (~10s)</strong><br>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-top:10px;">
+          <div style="background:#0f172a; border:1px solid #3b0764; border-radius:6px; padding:10px;">
+            <div style="color:#a78bfa; font-size:0.75rem; font-weight:600; margin-bottom:4px;">Agent 2 · Resume Writer</div>
+            <div style="color:#64748b; font-size:0.73rem;">Rewrites bullets with JD keywords. Returns <code>{rewritten_resume, changes:[{original, rewritten, reason}]}</code></div>
+          </div>
+          <div style="background:#0f172a; border:1px solid #3b0764; border-radius:6px; padding:10px;">
+            <div style="color:#a78bfa; font-size:0.75rem; font-weight:600; margin-bottom:4px;">Agent 3 · Cover Letter</div>
+            <div style="color:#64748b; font-size:0.73rem;">1-page letter tone-matched to the company. Returns plain text.</div>
+          </div>
+          <div style="background:#0f172a; border:1px solid #3b0764; border-radius:6px; padding:10px;">
+            <div style="color:#a78bfa; font-size:0.75rem; font-weight:600; margin-bottom:4px;">Agent 4 · Interviewer</div>
+            <div style="color:#64748b; font-size:0.73rem;">10 Q&As. Returns <code>[{type, question, sample_answer, tip}]</code></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#7c3aed; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>All results saved to the <code>drafts</code> table as JSON strings</strong><br><span style="font-size:0.83rem; color:#64748b;"><code>json.dumps(result)</code> before INSERT. Parsed back to objects with <code>json.loads()</code> when the frontend fetches them.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#faf5ff; border:1px solid #e9d5ff; border-radius:0 0 10px 10px;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">✓</div>
+      <div><strong>Total: ~15s &nbsp;·&nbsp; Sequential would be ~45s &nbsp;·&nbsp; 3× faster from parallelism</strong></div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div style="background:#0f172a; border:1px solid #334155; border-radius:12px; padding:20px 24px; font-family:monospace; font-size:0.8rem; margin:0 0 32px;">
+    <div style="color:#94a3b8; margin-bottom:14px; font-weight:600;">Execution Timeline</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:120px; color:#60a5fa; font-size:0.75rem; font-weight:600; text-align:right; flex-shrink:0;">Agent 1 · Fit</div>
+        <div style="background:linear-gradient(90deg,#1d4ed8,#3b82f6); height:24px; width:100px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.7rem; flex-shrink:0;">~5s</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:120px; color:#a78bfa; font-size:0.75rem; font-weight:600; text-align:right; flex-shrink:0;">Agent 2 · Resume</div>
+        <div style="width:100px; flex-shrink:0;"></div>
+        <div style="background:linear-gradient(90deg,#6d28d9,#7c3aed); height:24px; width:150px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.7rem; flex-shrink:0;">~8s (parallel)</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:120px; color:#a78bfa; font-size:0.75rem; font-weight:600; text-align:right; flex-shrink:0;">Agent 3 · Cover</div>
+        <div style="width:100px; flex-shrink:0;"></div>
+        <div style="background:linear-gradient(90deg,#6d28d9,#7c3aed); height:24px; width:115px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.7rem; flex-shrink:0;">~6s (parallel)</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div style="width:120px; color:#a78bfa; font-size:0.75rem; font-weight:600; text-align:right; flex-shrink:0;">Agent 4 · Interview</div>
+        <div style="width:100px; flex-shrink:0;"></div>
+        <div style="background:linear-gradient(90deg,#6d28d9,#7c3aed); height:24px; width:185px; border-radius:5px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:0.7rem; flex-shrink:0;">~10s (parallel)</div>
+      </div>
+      <div style="margin-top:8px; padding-top:10px; border-top:1px solid #1e293b; font-size:0.8rem; display:flex; gap:12px; align-items:center;">
+        <span style="color:#10b981; font-weight:700;">Total: ~15s</span>
+        <span style="color:#475569;">vs.</span>
+        <span style="color:#64748b; text-decoration:line-through;">Sequential: ~45s</span>
+        <span style="background:#064e3b; color:#10b981; font-size:0.68rem; font-weight:700; padding:2px 8px; border-radius:100px;">3× faster</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── FLOW 4: VIEW RESULTS ──────────────────────────────────────────── -->
+  <h2><span class="step-num">5</span> Flow 4 — Viewing &amp; Using Results</h2>
+
+  <div style="display:flex; flex-direction:column; gap:2px; margin:20px 0 32px;">
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px 10px 0 0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">1</div>
+      <div><strong>application.html reads <code>?id=X</code> from the URL, calls <code>GET /applications/X</code></strong><br><span style="font-size:0.83rem; color:#64748b;">One API call returns the full application with the embedded draft object.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">2</div>
+      <div><strong>Fit Analysis tab — score ring, matching/missing tags, skills + keyword chips</strong><br><span style="font-size:0.83rem; color:#64748b;"><code>JSON.parse(draft.fit_analysis)</code> → reads <code>match_score</code> → animates SVG ring via <code>stroke-dashoffset</code>.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">3</div>
+      <div><strong>Resume tab — original left, rewritten right, change cards below</strong><br><span style="font-size:0.83rem; color:#64748b;"><code>JSON.parse(draft.resume_rewrite)</code> → renders the diff view and each change with its reason.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">4</div>
+      <div><strong>Cover Letter tab — readable letter + Download .docx button</strong><br><span style="font-size:0.83rem; color:#64748b;"><code>GET /applications/{id}/download/cover-letter</code> → backend generates .docx with python-docx → browser downloads via <code>Content-Disposition: attachment</code>.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-bottom:none;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">5</div>
+      <div><strong>Interview Prep tab — 10 expandable Q&amp;As with type badges</strong><br><span style="font-size:0.83rem; color:#64748b;"><code>JSON.parse(draft.interview_qa)</code> → accordion cards, each with type (behavioral/technical/situational), question, sample answer, coaching tip.</span></div>
+    </div>
+    <div style="display:flex; gap:14px; padding:13px 16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:0 0 10px 10px;">
+      <div style="width:26px; height:26px; background:#10b981; color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.73rem; font-weight:700; flex-shrink:0; margin-top:1px;">6</div>
+      <div><strong>Status dropdown + ↺ Regenerate buttons</strong><br><span style="font-size:0.83rem; color:#64748b;">Status: <code>PATCH /applications/{id}/status</code>. Regenerate: <code>POST /applications/{id}/regenerate/{section}</code> — re-runs one agent only, ~10s, without touching the other tabs.</span></div>
+    </div>
+  </div>
+
+  <!-- ─── DATABASE SCHEMA ───────────────────────────────────────────────── -->
+  <h2><span class="step-num">6</span> Database Schema at a Glance</h2>
+
+  <div style="display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:0; align-items:start; margin:24px 0 32px; font-family:monospace; font-size:0.8rem;">
+    <div style="border:2px solid #3b82f6; border-radius:10px; overflow:hidden;">
+      <div style="background:#1e3a8a; color:#93c5fd; font-weight:700; padding:9px 14px;">users</div>
+      <div style="background:#f8fafc; padding:10px 14px; line-height:2;">
+        <div><span style="color:#f59e0b; font-weight:600;">id</span> <span style="color:#94a3b8;">PK</span></div>
+        <div>email <span style="color:#94a3b8;">unique</span></div>
+        <div>hashed_password</div>
+        <div>created_at</div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 10px; padding-top:48px; color:#94a3b8; font-size:0.68rem; text-align:center; gap:2px;">
+      <div>1</div><div style="font-size:1.1rem;">→</div><div>many</div>
+    </div>
+    <div style="border:2px solid #10b981; border-radius:10px; overflow:hidden;">
+      <div style="background:#064e3b; color:#6ee7b7; font-weight:700; padding:9px 14px;">applications</div>
+      <div style="background:#f8fafc; padding:10px 14px; line-height:2;">
+        <div><span style="color:#f59e0b; font-weight:600;">id</span> <span style="color:#94a3b8;">PK</span></div>
+        <div><span style="color:#ef4444; font-weight:600;">user_id</span> <span style="color:#94a3b8;">FK</span></div>
+        <div>job_title, company</div>
+        <div>jd_text, original_resume</div>
+        <div>status <span style="color:#94a3b8;">Enum</span></div>
+        <div>created_at</div>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 10px; padding-top:48px; color:#94a3b8; font-size:0.68rem; text-align:center; gap:2px;">
+      <div>1</div><div style="font-size:1.1rem;">→</div><div>1</div>
+    </div>
+    <div style="border:2px solid #7c3aed; border-radius:10px; overflow:hidden;">
+      <div style="background:#3b0764; color:#c4b5fd; font-weight:700; padding:9px 14px;">drafts</div>
+      <div style="background:#f8fafc; padding:10px 14px; line-height:2;">
+        <div><span style="color:#f59e0b; font-weight:600;">id</span> <span style="color:#94a3b8;">PK</span></div>
+        <div><span style="color:#ef4444; font-weight:600;">application_id</span> <span style="color:#94a3b8;">FK</span></div>
+        <div>fit_analysis <span style="color:#94a3b8;">JSON</span></div>
+        <div>resume_rewrite <span style="color:#94a3b8;">JSON</span></div>
+        <div>cover_letter <span style="color:#94a3b8;">text</span></div>
+        <div>interview_qa <span style="color:#94a3b8;">JSON</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">Why store agent output as JSON text?</div>
+    <p>Each agent returns a different structure (score + arrays vs plain text vs Q&A list). Rather than creating 4 separate tables with different columns, each output is <code>json.dumps()</code>-ed before INSERT and <code>json.loads()</code>-ed after SELECT. This keeps the schema simple — the structure is defined by the agent prompt, not the database.</p>
+  </div>
+
+  <div class="page-nav">
+    <a href="index.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>Overview</span>
+    </a>
+    <a href="00-getting-started.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>00 · Get Started — New Laptop</span>
+    </a>
+  </div>
+</main>
+
+</body>
+</html>

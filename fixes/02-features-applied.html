@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>02 · Features Added — Fixes Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html">🏠 Overview</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="00-getting-started.html">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html" class="active">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html">03 · Still To Do Manually</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 02</div>
+    <h1 class="page-title">Features — Already Added</h1>
+    <p class="page-subtitle">3 features that were in the capstone spec but missing from the codebase. All have been added directly to <code>frontend/application.html</code>. This page explains each one.</p>
+  </div>
+
+  <div class="done-box">
+    <div class="done-label">✅ Already in application.html — nothing to re-do</div>
+    <p>These additions are already in the repo. Read this page to understand what's there and where to find it if you need to tweak anything on the other laptop.</p>
+  </div>
+
+  <!-- FEATURE 1 -->
+  <h2><span class="step-num">1</span> "Generate Kit" button when no draft exists</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Why it was missing:</strong> If you navigate to <code>application.html?id=X</code> and no draft has been generated yet (e.g., the pipeline failed on first run), the 4 tabs were empty and there was no way to trigger generation. The <code>POST /applications/{id}/generate</code> endpoint existed on the backend but was never called from this page.</p>
+
+  <p><strong>What was added — HTML banner</strong> (placed above the tabs):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — no-draft banner HTML <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html">&lt;!-- ADDED: No-draft banner — shown when application exists but kit hasn't been generated yet --&gt;
+&lt;div id="no-draft-banner" class="hidden"
+     style="background:#fffbeb; border:1px solid #fcd34d; border-radius:12px;
+            padding:20px 24px; margin-bottom:24px; display:flex;
+            align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;"&gt;
+  &lt;div&gt;
+    &lt;div style="font-weight:600; color:#78350f;"&gt;AI kit not generated yet&lt;/div&gt;
+    &lt;div style="font-size:0.875rem; color:#92400e; margin-top:4px;"&gt;
+      Click "Generate Kit" to run all 4 agents (~20–30 seconds).
+    &lt;/div&gt;
+  &lt;/div&gt;
+  &lt;button class="btn btn-primary" id="generate-kit-btn"&gt;✨ Generate Kit&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <p><strong>What was added — JS logic</strong> (inside the script tag):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — generate kit JS <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// In loadApp() — show/hide banner based on draft existence
+if (appData.draft) {
+  renderAllTabs(appData.draft);
+  document.getElementById('no-draft-banner').classList.add('hidden');
+} else {
+  // ADDED: show banner with Generate button when draft doesn't exist yet
+  document.getElementById('no-draft-banner').classList.remove('hidden');
+}
+
+// ── ADDED: Generate Kit button event listener ──
+document.getElementById('generate-kit-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('generate-kit-btn');
+  btn.disabled  = true;
+  btn.innerHTML = '&lt;span class="spinner"&gt;&lt;/span&gt; Running agents…';
+  try {
+    await api.post(`/applications/${appId}/generate`, {});
+    // Reload to get the fresh draft
+    appData = await api.get(`/applications/${appId}`);
+    if (appData.draft) {
+      renderAllTabs(appData.draft);
+      document.getElementById('no-draft-banner').classList.add('hidden');
+      toast('Kit generated!', 'success');
+    }
+  } catch (err) {
+    toast(err.message, 'error');
+    btn.disabled    = false;
+    btn.textContent = '✨ Generate Kit';
+  }
+});</code></pre>
+  </div>
+
+  <!-- FEATURE 2 -->
+  <h2><span class="step-num">2</span> Fit Analysis Regenerate button</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Why it was missing:</strong> The Resume, Cover Letter, and Interview tabs all had "↺ Regenerate" buttons, but the Fit Analysis tab had no header at all. The backend fully supports <code>POST /applications/{id}/regenerate/fit_analysis</code> — it just wasn't wired up.</p>
+
+  <p><strong>What was added — HTML</strong> (at the top of tab-fit panel):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — fit tab header <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html">&lt;!-- ADDED: Fit Analysis regenerate button (was missing; backend supports POST /regenerate/fit_analysis) --&gt;
+&lt;div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"&gt;
+  &lt;h3 style="margin:0;"&gt;Fit Analysis&lt;/h3&gt;
+  &lt;button class="btn btn-secondary btn-sm" id="regen-fit"&gt;↺ Regenerate&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <p><strong>What was added — JS event listener</strong> (alongside other regen listeners):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — fit regen listener <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">document.getElementById('regen-fit').addEventListener('click',
+  () => regenerate('fit_analysis', renderFit));  // ADDED: fit regen was missing</code></pre>
+  </div>
+
+  <!-- FEATURE 3 -->
+  <h2><span class="step-num">3</span> Skills to Emphasise + Key JD Keywords displayed</h2>
+  <p><strong>File:</strong> <code>frontend/application.html</code></p>
+  <p><strong>Why it was missing:</strong> The backend's Fit Analyst agent already returns <code>skills_to_emphasize</code> and <code>key_keywords</code> in its JSON output. The <code>renderFit()</code> function only read <code>matching_requirements</code>, <code>missing_requirements</code>, and <code>overall_summary</code> — the other two fields were silently ignored.</p>
+
+  <p><strong>What was added — HTML</strong> (inside the fit tab, after the summary div):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — skills + keywords HTML <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html">&lt;!-- ADDED: skills_to_emphasize + key_keywords (returned by backend but not displayed before) --&gt;
+&lt;div id="fit-extra" class="hidden" style="margin-top:20px;"&gt;
+  &lt;div style="font-size:0.8rem; font-weight:600; color:#1d4ed8; margin-bottom:8px;"&gt;
+    💡 Skills to Emphasise
+  &lt;/div&gt;
+  &lt;div id="fit-skills" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;"&gt;&lt;/div&gt;
+  &lt;div style="font-size:0.8rem; font-weight:600; color:#7c3aed; margin-bottom:8px;"&gt;
+    🔑 Key JD Keywords
+  &lt;/div&gt;
+  &lt;div id="fit-keywords" style="display:flex; flex-wrap:wrap; gap:8px;"&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <p><strong>What was added — JS</strong> (appended to the <code>renderFit()</code> function):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — renderFit additions <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// ADDED: render skills_to_emphasize and key_keywords
+// (were generated by backend but never displayed)
+const skills   = fit.skills_to_emphasize || [];
+const keywords = fit.key_keywords || [];
+if (skills.length || keywords.length) {
+  document.getElementById('fit-extra').classList.remove('hidden');
+  document.getElementById('fit-skills').innerHTML = skills.map(s =>
+    `&lt;span style="background:#eff6ff; color:#1d4ed8; padding:4px 12px;
+                  border-radius:100px; font-size:0.8rem;"&gt;${s}&lt;/span&gt;`
+  ).join('');
+  document.getElementById('fit-keywords').innerHTML = keywords.map(k =>
+    `&lt;span style="background:#f5f3ff; color:#6d28d9; padding:4px 12px;
+                  border-radius:100px; font-size:0.8rem;"&gt;${k}&lt;/span&gt;`
+  ).join('');
+}</code></pre>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY show skills and keywords?</div>
+    <p>The whole point of the Fit Analyst agent is to tell the user what to emphasise in the rewrite. Showing <code>skills_to_emphasize</code> and <code>key_keywords</code> in the UI gives the user actionable context — they can see what the resume rewrite agent focused on and manually tweak bullets if needed. The data was already being generated and stored; it just wasn't surfaced.</p>
+  </div>
+
+  <h2>Verify the Features</h2>
+  <ol>
+    <li>Open an application that has <strong>no draft</strong> → the amber banner "AI kit not generated yet" should appear with a "✨ Generate Kit" button → click it → tabs should populate.</li>
+    <li>Open an application that has a draft → open the <strong>Fit Analysis tab</strong> → you should see a "↺ Regenerate" button in the top-right → click it → score ring should animate to the new score.</li>
+    <li>On the same Fit Analysis tab, scroll down → you should see blue "Skills to Emphasise" chips and purple "Key JD Keywords" chips below the summary paragraph.</li>
+  </ol>
+
+  <div class="page-nav">
+    <a href="01-bugs-applied.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>P0 Bugs — Already Fixed</span>
+    </a>
+    <a href="03-todo-manual.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>Still To Do Manually</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

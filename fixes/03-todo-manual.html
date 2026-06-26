@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>03 · Still To Do — Fixes Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html">🏠 Overview</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="00-getting-started.html">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html" class="active">03 · Still To Do Manually</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 03</div>
+    <h1 class="page-title">Still To Do Manually</h1>
+    <p class="page-subtitle">Everything left before the capstone submission on Sun 28 Jun 2026. Work through these in order on the other laptop. Each task has exact commands or code snippets.</p>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">⚠ Deadline — Sun 28 Jun 2026 EOD</div>
+    <p>You have ~2 days. Prioritise in this order: <strong>P1 first</strong> (resume download) → <strong>P2</strong> (Alembic + GitHub) → <strong>P3</strong> (video + slides). Skip JD scraping and Vercel deploy if time is short — GitHub repo submission is fully acceptable.</p>
+  </div>
+
+  <!-- ───────────────────────── TASK 1 ───────────────────────────── -->
+  <h2><span class="step-num">1</span> Resume PDF Download — Backend Endpoint</h2>
+  <p><strong>Why:</strong> The spec says "Download buttons: cover letter as .docx, <strong>resume as PDF</strong>." Cover letter is done. Resume download is not.</p>
+  <p><strong>What to do:</strong> Add one endpoint to <code>backend/routers/applications_router.py</code>. The simplest approach returns the rewritten resume as a plain-text file (no PDF generation library needed). Add it right after the cover-letter download endpoint.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/routers/applications_router.py — add after download/cover-letter endpoint <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">@router.get("/{app_id}/download/resume")
+def download_resume(
+    app_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Returns the rewritten resume as a downloadable .txt file.
+    Plain text is the safest format — no PDF generation library needed.
+    Users can paste it into any word processor and format as needed."""
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application or not application.draft or not application.draft.resume_rewrite:
+        raise HTTPException(status_code=404, detail="Resume rewrite not generated yet")
+
+    rewrite_data = json.loads(application.draft.resume_rewrite)
+    resume_text  = rewrite_data.get("text", application.original_resume)
+
+    safe = lambda s: "".join(c for c in s if c.isalnum() or c in " _-")[:30]
+    filename = f"resume_{safe(application.company)}_{safe(application.job_title)}.txt".replace(" ", "_")
+
+    return Response(
+        content=resume_text.encode("utf-8"),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )</code></pre>
+  </div>
+
+  <p><strong>Then add the download button to the Resume tab</strong> in <code>frontend/application.html</code>. Find this existing line:</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — find this line in tab-resume <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html">&lt;!-- Find this block in the Resume tab: --&gt;
+&lt;div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"&gt;
+  &lt;h3 style="margin:0;"&gt;Rewritten Resume&lt;/h3&gt;
+  &lt;button class="btn btn-secondary btn-sm" id="regen-resume"&gt;↺ Regenerate&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;!-- Replace with this (adds a Download button next to Regenerate): --&gt;
+&lt;div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;"&gt;
+  &lt;h3 style="margin:0;"&gt;Rewritten Resume&lt;/h3&gt;
+  &lt;div style="display:flex; gap:10px;"&gt;
+    &lt;button class="btn btn-secondary btn-sm" id="regen-resume"&gt;↺ Regenerate&lt;/button&gt;
+    &lt;button class="btn btn-primary   btn-sm" id="download-resume"&gt;⬇ Download .txt&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <p><strong>Then add the JS event listener</strong> anywhere near the other download listener in the script:</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html — add to script section <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// Resume download — plain text
+document.getElementById('download-resume').addEventListener('click', async () => {
+  try {
+    const blob = await api.getBlob(`/applications/${appId}/download/resume`);
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `resume-${appId}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) { toast(err.message, 'error'); }
+});</code></pre>
+  </div>
+
+  <!-- ───────────────────────── TASK 2 ───────────────────────────── -->
+  <h2><span class="step-num">2</span> Alembic Migrations — Run These Commands</h2>
+  <p><strong>Why:</strong> The capstone submission requires "an Alembic migrations folder if you used a relational DB." <code>alembic</code> is already in <code>requirements.txt</code> but was never initialised.</p>
+  <p><strong>Run these commands from inside the <code>backend/</code> folder</strong> (with venv activated):</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — from backend/ with venv active <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># 1. Initialise Alembic — creates alembic.ini and migrations/ folder
+alembic init migrations
+
+# 2. Open migrations/env.py and find this line:
+#    target_metadata = None
+# Replace it with:
+#    from database import Base
+#    target_metadata = Base.metadata
+
+# 3. In alembic.ini, find:
+#    sqlalchemy.url = driver://user:pass@localhost/dbname
+# Replace with:
+#    sqlalchemy.url = sqlite:///./job_copilot.db
+
+# 4. Generate the first migration from your current models
+alembic revision --autogenerate -m "initial schema"
+
+# 5. Apply it (creates the tables — same as Base.metadata.create_all)
+alembic upgrade head</code></pre>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">⚠ env.py edit is required</div>
+    <p>Without editing <code>migrations/env.py</code> to import <code>Base.metadata</code>, the autogenerate command won't detect any models and will create an empty migration. The two lines to add/change are clearly marked in the commands above.</p>
+  </div>
+
+  <p><strong>After running these commands, commit everything:</strong></p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">git add alembic.ini migrations/
+git commit -m "add alembic migrations for initial schema"</code></pre>
+  </div>
+
+  <!-- ───────────────────────── TASK 3 ───────────────────────────── -->
+  <h2><span class="step-num">3</span> GitHub Repository — Create, Commit &amp; Push</h2>
+  <p><strong>Why:</strong> The submission requires either a live URL or a GitHub repo. A GitHub repo is simpler and fully accepted. You need this before deploying to Vercel (Task 4).</p>
+
+  <h3>Step 3.1 — Create a .gitignore file first</h3>
+  <p>Create a file called <code>.gitignore</code> at the project root (same level as <code>backend/</code> and <code>frontend/</code>). This tells git which files to skip. <strong>Do this before running any git add command.</strong></p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">.gitignore — create this file at the project root <span class="lang">text</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-text"># Secrets — never commit these
+backend/.env
+
+# Virtual environment — machine-specific, recreated with pip install
+backend/venv/
+
+# SQLite database — contains real user data, not source code
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Python bytecode — auto-generated, not source code
+**/__pycache__/
+*.pyc
+*.pyo
+
+# OS files
+.DS_Store
+Thumbs.db</code></pre>
+  </div>
+
+  <div class="danger-box">
+    <div class="danger-label">Never commit backend/.env</div>
+    <p>Your <code>.env</code> contains your real Groq API key. If you push it to a public repo, bots scrape GitHub within minutes and steal the key. The safe file is <code>.env.example</code> (placeholder values) — that one is fine to commit and is already in the repo.</p>
+  </div>
+
+  <h3>Step 3.2 — What gets committed (and what doesn't)</h3>
+
+  <table>
+    <thead><tr><th>File / Folder</th><th>Committed?</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>backend/*.py</td><td><span class="chip chip-done">Yes</span></td><td>All Python source files — the actual code</td></tr>
+      <tr><td>backend/requirements.txt</td><td><span class="chip chip-done">Yes</span></td><td>Required so anyone can recreate the venv</td></tr>
+      <tr><td>backend/.env.example</td><td><span class="chip chip-done">Yes</span></td><td>Shows what variables are needed (no real values)</td></tr>
+      <tr><td>backend/agents/, routers/, utils/</td><td><span class="chip chip-done">Yes</span></td><td>All subfolders with Python files</td></tr>
+      <tr><td>frontend/*.html, css/, js/</td><td><span class="chip chip-done">Yes</span></td><td>All frontend files</td></tr>
+      <tr><td>guide/, fixes/</td><td><span class="chip chip-done">Yes</span></td><td>Documentation — useful to include</td></tr>
+      <tr><td>REQUIREMENTS.md</td><td><span class="chip chip-done">Yes</span></td><td>Project spec — fine to include</td></tr>
+      <tr><td>backend/.env</td><td><span class="chip chip-todo">NO</span></td><td>Contains real API keys — covered by .gitignore</td></tr>
+      <tr><td>backend/venv/</td><td><span class="chip chip-todo">NO</span></td><td>Machine-specific binaries — huge, not portable</td></tr>
+      <tr><td>backend/*.db</td><td><span class="chip chip-todo">NO</span></td><td>Contains real user data from your test sessions</td></tr>
+      <tr><td>**/__pycache__/</td><td><span class="chip chip-todo">NO</span></td><td>Auto-generated bytecode — not source code</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Step 3.3 — Create the repo on GitHub.com</h3>
+  <ol>
+    <li>Go to <strong>github.com</strong> and sign in (or sign up — it's free).</li>
+    <li>Click the <strong>+</strong> icon (top right) → <strong>New repository</strong>.</li>
+    <li>Set <strong>Repository name</strong> to something like <code>job-application-copilot</code>.</li>
+    <li>Choose <strong>Public</strong> (needed if your submission requires a public link) or Private.</li>
+    <li><strong>Do NOT</strong> tick "Add a README file", "Add .gitignore", or "Choose a license" — you already have these locally. Adding them here causes a conflict on first push.</li>
+    <li>Click <strong>Create repository</strong>.</li>
+    <li>GitHub shows you a page with setup commands. Copy your repo URL — it looks like:<br><code>https://github.com/YOUR_USERNAME/job-application-copilot.git</code></li>
+  </ol>
+
+  <h3>Step 3.4 — Initialize git and make your first commit</h3>
+  <p>Open a terminal at the <strong>project root</strong> (the folder that contains both <code>backend/</code> and <code>frontend/</code>):</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — from project root (not inside backend/ or frontend/) <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># 1. Initialize git in this folder
+git init
+
+# 2. Stage all files (the .gitignore will automatically exclude .env, venv, .db)
+git add .
+
+# 3. Verify what will be committed — check the list does NOT include .env or venv/
+git status
+
+# 4. Make the first commit
+git commit -m "initial commit — job application co-pilot capstone"</code></pre>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">⚠ git not found on Windows?</div>
+    <p>Download and install Git from <strong>git-scm.com</strong> → use the default installer settings. After installing, close and reopen your terminal. Then run <code>git --version</code> to confirm it works.</p>
+  </div>
+
+  <h3>Step 3.5 — Connect to GitHub and push</h3>
+  <p>Replace <code>YOUR_USERNAME</code> with your actual GitHub username:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — connect remote and push <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># Connect your local repo to GitHub
+git remote add origin https://github.com/YOUR_USERNAME/job-application-copilot.git
+
+# Rename the branch to 'main' (GitHub's default)
+git branch -M main
+
+# Push — the -u flag sets the upstream so future pushes just need 'git push'
+git push -u origin main</code></pre>
+  </div>
+
+  <p>GitHub will ask for your username and password. <strong>The password is NOT your GitHub account password</strong> — it's a Personal Access Token (PAT):</p>
+  <ol>
+    <li>On GitHub: click your profile photo → <strong>Settings</strong> → <strong>Developer settings</strong> (bottom of left sidebar) → <strong>Personal access tokens</strong> → <strong>Tokens (classic)</strong></li>
+    <li>Click <strong>Generate new token (classic)</strong></li>
+    <li>Set expiration to 90 days, tick the <strong>repo</strong> scope checkbox</li>
+    <li>Click Generate → copy the token (starts with <code>ghp_</code>)</li>
+    <li>Paste it as the password when git prompts you</li>
+  </ol>
+
+  <h3>Step 3.6 — Subsequent commits (after making changes)</h3>
+  <p>Every time you change files and want to save them to GitHub:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — for every update after the first push <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># See what changed
+git status
+
+# Stage all changed files
+git add .
+
+# Or stage only specific files (safer):
+git add frontend/application.html backend/routers/applications_router.py
+
+# Commit with a short description of what changed
+git commit -m "add resume download endpoint and button"
+
+# Push to GitHub
+git push</code></pre>
+  </div>
+
+  <div class="done-box">
+    <div class="done-label">✅ Repo is ready when</div>
+    <p>
+      1. You can visit <code>https://github.com/YOUR_USERNAME/job-application-copilot</code> and see all your files.<br>
+      2. The <code>backend/.env</code> file does NOT appear in the file list on GitHub.<br>
+      3. The <code>backend/venv/</code> folder does NOT appear in the file list.<br>
+      4. <code>backend/.env.example</code> DOES appear (that one is safe).
+    </p>
+  </div>
+
+  <!-- ───────────────────────── TASK 4 ───────────────────────────── -->
+  <h2><span class="step-num">4</span> Frontend Deployment — Vercel (Optional but Easy)</h2>
+  <p><strong>Why:</strong> Vercel gives you a public URL like <code>https://your-project.vercel.app</code> that anyone can open. Good for the demo video and submission. Zero cost, zero config for static HTML. <strong>Requires Task 3 (GitHub repo) to be done first.</strong></p>
+
+  <div class="note-box">
+    <div class="note-label">⚠ Frontend-only deployment</div>
+    <p>Vercel hosts the HTML/CSS/JS files only. The backend still runs on your laptop when you demo locally. If you want a live backend URL too (so the Vercel site actually works without your laptop), see the note at the bottom of this task — it requires significant extra work.</p>
+  </div>
+
+  <h3>Step 4.1 — Update BASE_URL in api.js (only if you have a live backend)</h3>
+  <p>If you are only deploying the frontend for show (and will demo locally), <strong>skip this step</strong>. If you actually deploy the backend somewhere (Render/Railway), change this line in <code>frontend/js/api.js</code>:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/js/api.js — line 1 <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// BEFORE (local dev only):
+const BASE_URL = 'http://localhost:8000';
+
+// AFTER (if you have a deployed backend):
+const BASE_URL = 'https://your-backend-name.onrender.com';
+// Then commit and push this change before deploying to Vercel</code></pre>
+  </div>
+
+  <h3>Step 4.2 — Deploy to Vercel</h3>
+  <ol>
+    <li>Go to <strong>vercel.com</strong> → click <strong>Sign Up</strong> → choose <strong>Continue with GitHub</strong>. Authorize Vercel to access your GitHub.</li>
+    <li>You land on the Vercel dashboard. Click <strong>Add New…</strong> → <strong>Project</strong>.</li>
+    <li>Under "Import Git Repository", find <code>job-application-copilot</code> in the list → click <strong>Import</strong>.</li>
+    <li>On the configuration screen:
+      <ul>
+        <li><strong>Framework Preset:</strong> leave as <em>Other</em> (Vercel auto-detects static HTML)</li>
+        <li><strong>Root Directory:</strong> click Edit → type <code>frontend</code> → click Done. <em>This is the most important setting</em> — without it Vercel tries to deploy the whole repo including backend.</li>
+        <li>Leave everything else as default.</li>
+      </ul>
+    </li>
+    <li>Click <strong>Deploy</strong>. Vercel builds in ~30 seconds.</li>
+    <li>You get a URL: <code>https://job-application-copilot-abc123.vercel.app</code> — click it to verify the login page loads.</li>
+    <li>Copy this URL and use it as your frontend submission link.</li>
+  </ol>
+
+  <h3>Step 4.3 — Redeploying after changes</h3>
+  <p>Vercel watches your GitHub repo automatically. Every time you <code>git push</code>, Vercel rebuilds and redeploys within ~30 seconds. You don't need to do anything in the Vercel dashboard after the first deploy.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — update Vercel by just pushing to GitHub <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># Make your changes, then:
+git add .
+git commit -m "update frontend"
+git push
+# Vercel automatically picks up the push and redeploys — no extra steps</code></pre>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">⚠ Backend deployment needs Postgres, not SQLite</div>
+    <p>If you also want to deploy the backend (to get a live API that the Vercel frontend can call), you must switch from SQLite to Postgres. Render's free tier uses an ephemeral filesystem — the <code>.db</code> file is wiped on every redeploy. This is significant extra work and not needed for the capstone submission. <strong>Submit the GitHub repo URL for the backend and the Vercel URL for the frontend.</strong></p>
+  </div>
+
+  <!-- ───────────────────────── TASK 5 ───────────────────────────── -->
+  <h2><span class="step-num">5</span> Project Video — Screen Recording (Under 5 Minutes)</h2>
+  <p><strong>Why:</strong> Hard requirement. The LMS submission requires this video.</p>
+  <p><strong>Tool:</strong> Loom (loom.com — free, records screen + webcam, instant shareable link) or OBS.</p>
+
+  <p><strong>What to cover in 5 minutes:</strong></p>
+  <ol>
+    <li><strong>~30 sec</strong> — Sign up / log in on the home screen.</li>
+    <li><strong>~30 sec</strong> — Dashboard with stats and filter buttons (show multiple existing applications if you have them).</li>
+    <li><strong>~60 sec</strong> — Create a new application: drag-drop a PDF, fill in a real job description, click Generate Kit, show the progress steps.</li>
+    <li><strong>~60 sec</strong> — Walk through all 4 tabs: Fit Analysis (score ring, matching/missing, skills/keywords), Resume (diff view), Cover Letter (download .docx), Interview Prep (accordion).</li>
+    <li><strong>~30 sec</strong> — Update application status (Not Applied → Applied).</li>
+    <li><strong>~30 sec</strong> — Click "↺ Regenerate" on one tab and show it updating.</li>
+  </ol>
+
+  <div class="why-box">
+    <div class="why-label">TIP — Record the demo on the other laptop with real data</div>
+    <p>Create 2–3 real applications before recording so the dashboard doesn't look empty. Use a real job description from LinkedIn or a careers page. A resume with actual content will produce much more impressive AI output than a placeholder.</p>
+  </div>
+
+  <!-- ───────────────────────── TASK 6 ───────────────────────────── -->
+  <h2><span class="step-num">6</span> Presentation Slides</h2>
+  <p><strong>Why:</strong> Hard requirement. The LMS needs this alongside the video.</p>
+  <p><strong>Tool:</strong> Gamma (gamma.app — AI generates slides from a prompt, then you edit). Fastest option.</p>
+
+  <p><strong>Required slide content (from the spec):</strong></p>
+  <table>
+    <thead><tr><th>Slide</th><th>Content</th></tr></thead>
+    <tbody>
+      <tr><td>1 — Problem</td><td>"Applying for jobs is a 20-minute grind per role. AI can turn that into 10 minutes of reviewing 4 high-quality drafts." Include the 4 artifacts.</td></tr>
+      <tr><td>2 — Who it's for</td><td>Job seekers, career changers, students applying to multiple roles simultaneously.</td></tr>
+      <tr><td>3 — Architecture diagram</td><td>Draw: Frontend → FastAPI → SQLite + Groq LLM. Show the 4-agent pipeline: Fit Analyst → [Resume Writer + Cover Letter + Interviewer] in parallel.</td></tr>
+      <tr><td>4 — What works</td><td>List all features: JWT auth, 4-agent pipeline, diff view, per-section regen, .docx download, status tracking, stats dashboard.</td></tr>
+      <tr><td>5 — What's next</td><td>LinkedIn JD scraping, resume PDF download, voice mock interview, ATS scorer, calendar integration.</td></tr>
+      <tr><td>6 — If 2 more weeks</td><td>Deploy with Postgres, add Alembic migrations, build ATS scorer, add voice mock interview and salary negotiation coach.</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Gamma prompt to generate a starting draft:</strong></p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">Paste this into Gamma's "Generate with AI" box <span class="lang">text</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-text">Create a 6-slide presentation for a capstone project called "Job Application Co-Pilot".
+Slide 1: Problem — applying to jobs is a 20-minute grind per role; AI can produce 4 tailored artifacts in 30 seconds.
+Slide 2: Who it's for — job seekers, career changers, students.
+Slide 3: Architecture — FastAPI backend, SQLite database, 4 LLM agents (Groq llama-3.3-70b), Vanilla JS frontend. Multi-agent pipeline: Fit Analyst runs first, then Resume Writer + Cover Letter Writer + Interviewer run in parallel.
+Slide 4: What works — JWT auth, 4 artifacts (fit analysis, resume rewrite, cover letter, interview Q&A), diff view, per-section regenerate, .docx download, status tracking, stats dashboard.
+Slide 5: What's next — LinkedIn JD scraping, resume PDF download, voice mock interview, ATS scorer.
+Slide 6: If 2 more weeks — Postgres + cloud deploy, Alembic migrations, ATS scorer, voice mock interview, salary negotiation coach.
+Use a clean professional theme. Dark blue and white.</code></pre>
+  </div>
+
+  <!-- ───────────────────────── TASK 7 (STRETCH) ───────────────────────────── -->
+  <h2><span class="step-num">7</span> JD URL Scraping — Stretch Feature (Do Last)</h2>
+  <p><strong>Why:</strong> The spec says "JD paste box; bonus: paste a LinkedIn URL and scrape with <code>requests + beautifulsoup4</code>." Both libraries are already installed.</p>
+  <p><strong>Only attempt this if tasks 1–6 are complete.</strong> LinkedIn actively blocks scrapers — a simpler approach is to scrape generic job pages or just show a fallback "URL scraping failed, please paste the JD instead."</p>
+
+  <p><strong>Add this utility</strong> to <code>backend/utils/pdf_parser.py</code> (or a new <code>backend/utils/jd_scraper.py</code>):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/utils/jd_scraper.py — create this file <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">import requests
+from bs4 import BeautifulSoup
+
+
+def scrape_jd_from_url(url: str) -> str:
+    """
+    Attempts to extract job description text from a URL.
+    Returns the extracted text, or raises an exception if scraping fails.
+    Works for most generic job pages; LinkedIn often blocks this.
+    """
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        )
+    }
+    response = requests.get(url, headers=headers, timeout=10)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    # Remove navigation, headers, footers, scripts, styles
+    for tag in soup(["script", "style", "nav", "header", "footer", "aside"]):
+        tag.decompose()
+
+    # Try common job description containers first
+    for selector in [
+        "[data-testid='job-details']",   # LinkedIn (may not work)
+        ".job-description",
+        ".job-details",
+        "#job-description",
+        "article",
+        "main",
+    ]:
+        el = soup.select_one(selector)
+        if el:
+            text = el.get_text(separator="\n", strip=True)
+            if len(text) > 200:
+                return text
+
+    # Fallback: extract all paragraph text
+    text = soup.get_text(separator="\n", strip=True)
+    return text[:5000]  # Limit to first 5000 chars</code></pre>
+  </div>
+
+  <p><strong>Add a backend endpoint</strong> to <code>applications_router.py</code>:</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/routers/applications_router.py — add near the top <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from utils.jd_scraper import scrape_jd_from_url
+
+class ScrapeRequest(BaseModel):  # add to schemas.py instead if preferred
+    url: str
+
+@router.post("/scrape-jd")
+def scrape_jd(
+    req: ScrapeRequest,
+    current_user: models.User = Depends(auth.get_current_user)
+):
+    """Scrapes JD text from a URL. Falls back gracefully if scraping fails."""
+    from pydantic import BaseModel
+    try:
+        text = scrape_jd_from_url(req.url)
+        return {"jd_text": text, "success": True}
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Could not scrape that URL: {str(e)}. Please paste the JD text manually."
+        )</code></pre>
+  </div>
+
+  <p><strong>Add a URL field to <code>new-application.html</code></strong> Step 2 (Job Details form) — place it above the Job Description textarea:</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/new-application.html — add above the JD textarea in step-2 <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html">&lt;div class="form-group"&gt;
+  &lt;label for="jd-url"&gt;
+    Job URL &lt;span class="label-hint"&gt;Paste a LinkedIn or careers page URL to auto-fill the JD&lt;/span&gt;
+  &lt;/label&gt;
+  &lt;div style="display:flex; gap:8px;"&gt;
+    &lt;input type="url" id="jd-url" placeholder="https://www.linkedin.com/jobs/view/..." style="flex:1;"&gt;
+    &lt;button type="button" class="btn btn-secondary" id="fetch-jd-btn"&gt;Fetch JD&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/new-application.html — add to script section <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// JD URL fetch button
+document.getElementById('fetch-jd-btn').addEventListener('click', async () => {
+  const url = document.getElementById('jd-url').value.trim();
+  if (!url) return toast('Enter a URL first', 'error');
+  const btn = document.getElementById('fetch-jd-btn');
+  btn.disabled = true;
+  btn.textContent = 'Fetching...';
+  try {
+    const data = await api.post('/applications/scrape-jd', { url });
+    document.getElementById('job-description').value = data.jd_text;
+    toast('JD fetched! Review and edit as needed.', 'success');
+  } catch (err) {
+    toast(err.message + ' — please paste manually.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Fetch JD';
+  }
+});</code></pre>
+  </div>
+
+  <!-- ───────────────────────── FINAL CHECKLIST ───────────────────────────── -->
+  <h2>Final Submission Checklist</h2>
+
+  <table>
+    <thead><tr><th>Item</th><th>Where to submit</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>✅ Project video (under 5 min)</td>
+        <td>LMS assignment</td>
+        <td>Loom gives you a shareable link — submit that link</td>
+      </tr>
+      <tr>
+        <td>✅ Presentation slides</td>
+        <td>LMS assignment</td>
+        <td>Export as PDF or submit the Gamma/Canva share link</td>
+      </tr>
+      <tr>
+        <td>✅ Frontend URL or GitHub repo</td>
+        <td>LMS assignment</td>
+        <td>Submit the Vercel URL, or the GitHub repo with README instructions</td>
+      </tr>
+      <tr>
+        <td>✅ Backend URL or GitHub repo</td>
+        <td>LMS assignment</td>
+        <td>Submit the GitHub repo + confirm <code>/docs</code> Swagger works locally</td>
+      </tr>
+      <tr>
+        <td>✅ Database schema</td>
+        <td>LMS assignment</td>
+        <td><code>backend/models.py</code> linked from README satisfies this</td>
+      </tr>
+      <tr>
+        <td>Optional: frontend mockups</td>
+        <td>LMS assignment</td>
+        <td>Skip if pressed for time</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="done-box">
+    <div class="done-label">✅ You are ready to submit when</div>
+    <p>
+      1. The app runs locally on the other laptop (backend on port 8000, frontend on port 8080).<br>
+      2. You can complete a full flow: sign up → upload resume → paste JD → Generate Kit → see all 4 tabs populated → download .docx.<br>
+      3. Status update saves (no 404 in DevTools Network tab).<br>
+      4. All 4 regenerate buttons work (check the Network tab — you want 200, not 400 or 422).<br>
+      5. GitHub repo is pushed with <code>.env.example</code>, <code>requirements.txt</code>, and the <code>migrations/</code> folder.<br>
+      6. Video is recorded. Slides are done.
+    </p>
+  </div>
+
+  <div class="page-nav">
+    <a href="02-features-applied.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>Features — Already Added</span>
+    </a>
+    <a href="index.html" class="nav-card next">
+      <span class="nav-dir">↑ Back to</span>
+      <span>Overview</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

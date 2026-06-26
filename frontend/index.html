@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Application Co-Pilot — Sign In</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div class="auth-wrapper">
+
+  <!-- ── Left hero panel ── -->
+  <div class="auth-hero">
+    <h1 class="auth-hero-title">Your AI-powered<br>job application kit</h1>
+    <p style="color:#94a3b8; font-size:1rem; margin-top:12px;">
+      Upload resume. Paste JD. Get 4 tailored artifacts in 30 seconds.
+    </p>
+    <ul style="list-style:none; margin-top:32px; display:flex; flex-direction:column; gap:16px;">
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🎯</span>
+        <span><strong>Fit Analysis</strong> — Match score + requirements gap</span>
+      </li>
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">📝</span>
+        <span><strong>Resume Rewrite</strong> — JD keywords + stronger bullets</span>
+      </li>
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">✉️</span>
+        <span><strong>Cover Letter</strong> — 1 page, downloadable .docx</span>
+      </li>
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🎤</span>
+        <span><strong>Interview Prep</strong> — 10 Q&As from your resume</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── Right form panel ── -->
+  <div class="auth-form-panel">
+    <div class="auth-form-box">
+      <div style="font-size:1.3rem; font-weight:700; margin-bottom:32px;
+                  display:flex; align-items:center; gap:10px;">
+        <span style="background:var(--color-primary); width:40px; height:40px; border-radius:10px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.2rem;">🚀</span>
+        Co-Pilot
+      </div>
+
+      <!-- Tab switcher -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Your password" required>
+        </div>
+        <div id="login-error" class="form-error" style="margin-bottom:12px;"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="login-btn">Sign In</button>
+      </form>
+
+      <!-- Signup form (hidden by default) -->
+      <form id="signup-form" class="hidden">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" placeholder="Alex Johnson">
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-password">
+            Password <span class="label-hint">min 8 characters</span>
+          </label>
+          <input type="password" id="signup-password" placeholder="Create a password"
+                 required minlength="8">
+        </div>
+        <div id="signup-error" class="form-error" style="margin-bottom:12px;"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="signup-btn">
+          Create Account
+        </button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { api, auth } from './js/api.js';
+
+  // If already logged in, skip the form entirely
+  if (auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+  function switchTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    document.getElementById('login-form').classList.toggle('hidden',  tab !== 'login');
+    document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup');
+  }
+  window.switchTab = switchTab;   // expose for inline onclick
+
+  // ── Login ──────────────────────────────────────────────────────────────────
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn     = document.getElementById('login-btn');
+    const errorEl = document.getElementById('login-error');
+    errorEl.textContent = '';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Signing in...';
+    try {
+      const data = await api.post('/auth/login', {
+        email:    document.getElementById('login-email').value,
+        password: document.getElementById('login-password').value,
+      });
+      auth.setToken(data.access_token);
+      const user = await api.get('/auth/me');
+      auth.setUser(user);
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      errorEl.textContent = err.message;
+      btn.disabled  = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+
+  // ── Signup ─────────────────────────────────────────────────────────────────
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn      = document.getElementById('signup-btn');
+    const errorEl  = document.getElementById('signup-error');
+    errorEl.textContent = '';
+    const password = document.getElementById('signup-password').value;
+    if (password.length < 8) {
+      errorEl.textContent = 'Password must be at least 8 characters';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating account...';
+    try {
+      // 1) Create account
+      await api.post('/auth/signup', {
+        email:     document.getElementById('signup-email').value,
+        password,
+        full_name: document.getElementById('signup-name').value || null,
+      });
+      // 2) Auto-login so the user lands on the dashboard immediately
+      const data = await api.post('/auth/login', {
+        email:    document.getElementById('signup-email').value,
+        password,
+      });
+      auth.setToken(data.access_token);
+      const user = await api.get('/auth/me');
+      auth.setUser(user);
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      errorEl.textContent = err.message;
+      btn.disabled    = false;
+      btn.textContent = 'Create Account';
+    }
+  });
+</script>
+</body>
+</html>

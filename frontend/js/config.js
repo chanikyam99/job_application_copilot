@@ -10,3 +10,4 @@ window.BACKEND_URL = (
 )
   ? 'http://localhost:8000'
   : 'https://job-application-copilot-dbo3.onrender.com'; // <-- replace after deploying
+consokle.log('Using backend URL:', window.BACKEND_URL);

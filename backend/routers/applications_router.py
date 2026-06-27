@@ -9,7 +9,7 @@ import models
 import schemas
 import auth
 from utils.pdf_parser import extract_text_from_pdf
-from utils.docx_generator import generate_cover_letter_docx
+from utils.docx_generator import generate_cover_letter_docx, generate_resume_docx
 from agents.orchestrator import (
     run_pipeline, run_fit_analyst, run_resume_writer,
     run_cover_letter_writer, run_interviewer
@@ -269,9 +269,7 @@ def download_resume(
     current_user: models.User = Depends(auth.get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Returns the rewritten resume as a downloadable .txt file.
-    Plain text is the safest format — no PDF generation library needed.
-    Users can paste it into any word processor and format as needed."""
+    """Returns the AI-rewritten resume as a downloadable .docx file."""
     application = db.query(models.Application).filter(
         models.Application.id == app_id,
         models.Application.user_id == current_user.id
@@ -283,12 +281,14 @@ def download_resume(
     rewrite_data = json.loads(application.draft.resume_rewrite)
     resume_text  = rewrite_data.get("text", application.original_resume)
 
+    docx_bytes = generate_resume_docx(resume_text, application.job_title, application.company)
+
     safe = lambda s: "".join(c for c in s if c.isalnum() or c in " _-")[:30]
-    filename = f"resume_{safe(application.company)}_{safe(application.job_title)}.txt".replace(" ", "_")
+    filename = f"resume_{safe(application.company)}_{safe(application.job_title)}.docx".replace(" ", "_")
 
     return Response(
-        content=resume_text.encode("utf-8"),
-        media_type="text/plain; charset=utf-8",
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 

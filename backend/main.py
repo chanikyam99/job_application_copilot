@@ -20,6 +20,7 @@ app = FastAPI(
 # Defaults to "*" for local dev — always set explicitly in production.
 _raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
 allowed_origins = [o.strip() for o in _raw_origins.split(",")] if _raw_origins != "*" else ["*"]
+print(f"Loaded ALLOWED_ORIGINS={allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,

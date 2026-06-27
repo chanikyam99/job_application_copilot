@@ -146,7 +146,7 @@
           <i data-lucide="refresh-cw"></i> Regenerate
         </button>
         <button class="btn btn-primary btn-sm" id="download-resume">
-          <i data-lucide="download"></i> Download .txt
+          <i data-lucide="download"></i> Download .docx
         </button>
       </div>
     </div>
@@ -325,7 +325,7 @@
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
       a.href     = url;
-      a.download = `resume-${appId}.txt`;
+      a.download = `resume-${appId}.docx`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) { toast(err.message, 'error'); }

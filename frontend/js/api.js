@@ -1,7 +1,11 @@
 // ===== CONFIGURATION =====
 // Resolved by frontend/js/config.js (loaded as a plain <script> before this module).
-// Falls back to localhost when config.js is absent (e.g. running tests directly).
-const BASE_URL = window.BACKEND_URL || 'http://localhost:8000';
+// Falls back to the deployed Render backend for production pages and localhost for local dev.
+const BASE_URL = window.BACKEND_URL || (
+  ['localhost', '127.0.0.1', ''].includes(window.location.hostname)
+    ? 'http://localhost:8000'
+    : 'https://job-application-copilot-dbo3.onrender.com'
+);
 
 // ===== AUTH STATE =====
 // Wraps localStorage so all token/user access goes through one object.

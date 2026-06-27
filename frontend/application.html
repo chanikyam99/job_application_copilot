@@ -120,7 +120,10 @@
   <div id="tab-resume" class="tab-panel hidden">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
       <h3 style="margin:0;">Rewritten Resume</h3>
-      <button class="btn btn-secondary btn-sm" id="regen-resume">↺ Regenerate</button>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary btn-sm" id="regen-resume">↺ Regenerate</button>
+        <button class="btn btn-primary   btn-sm" id="download-resume">⬇ Download .txt</button>
+      </div>
     </div>
     <div class="diff-view" id="resume-diff">
       <!-- populated by JS: pairs of (original → rewritten) bullet points -->
@@ -309,6 +312,19 @@
       const a    = document.createElement('a');
       a.href     = url;
       a.download = `cover-letter-${appId}.docx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { toast(err.message, 'error'); }
+  });
+
+  // Resume download — plain text
+  document.getElementById('download-resume').addEventListener('click', async () => {
+    try {
+      const blob = await api.getBlob(`/applications/${appId}/download/resume`);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = `resume-${appId}.txt`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) { toast(err.message, 'error'); }

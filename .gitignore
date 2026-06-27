@@ -1,4 +1,5 @@
 backend/.env
+backend/.venv
 backend/venv/
 backend/*.db
 backend/*.db-shm

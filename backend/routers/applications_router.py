@@ -263,6 +263,34 @@ def download_cover_letter(
         headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )
 
+@router.get("/{app_id}/download/resume")
+def download_resume(
+    app_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Returns the rewritten resume as a downloadable .txt file.
+    Plain text is the safest format — no PDF generation library needed.
+    Users can paste it into any word processor and format as needed."""
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application or not application.draft or not application.draft.resume_rewrite:
+        raise HTTPException(status_code=404, detail="Resume rewrite not generated yet")
+
+    rewrite_data = json.loads(application.draft.resume_rewrite)
+    resume_text  = rewrite_data.get("text", application.original_resume)
+
+    safe = lambda s: "".join(c for c in s if c.isalnum() or c in " _-")[:30]
+    filename = f"resume_{safe(application.company)}_{safe(application.job_title)}.txt".replace(" ", "_")
+
+    return Response(
+        content=resume_text.encode("utf-8"),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
 
 @router.delete("/{app_id}", status_code=204)
 def delete_application(

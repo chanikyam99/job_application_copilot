@@ -1,0 +1,3 @@
+changes made : 
+added python-version in envrionment variables of render as 3.12.13
+updated start command as alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT

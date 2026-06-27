@@ -1,0 +1,7 @@
+changes made:
+- Added Python 3.12.13 as the Render runtime version using a runtime.txt file.
+- Updated the Render start command to run Alembic migrations before launching the app:
+  alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
+- Added bcrypt==4.0.1 explicitly to requirements.txt so it is installed on future deployments.
+- Fixed the initial Alembic migration so it creates tables in the correct dependency order for users, applications, and drafts.
+- Made the initial migration idempotent so redeploys do not fail when tables already exist.

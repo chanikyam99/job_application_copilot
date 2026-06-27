@@ -9,4 +9,4 @@ window.BACKEND_URL = (
   location.hostname === ''
 )
   ? 'http://localhost:8000'
-  : 'https://YOUR_BACKEND.onrender.com'; // <-- replace after deploying
+  : 'https://job-application-copilot-dbo3.onrender.com'; // <-- replace after deploying

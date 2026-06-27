@@ -5,25 +5,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Application — Job Application Co-Pilot</title>
   <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body class="page-wrapper">
 
 <nav class="navbar">
-  <a href="dashboard.html" class="navbar-brand"><div class="logo-icon">🚀</div>Co-Pilot</a>
+  <a href="dashboard.html" class="navbar-brand">
+    <div class="logo-icon"><i data-lucide="zap"></i></div>Co-Pilot
+  </a>
   <div class="navbar-right">
-    <a href="dashboard.html" class="btn btn-secondary btn-sm">← Dashboard</a>
+    <a href="dashboard.html" class="btn btn-secondary btn-sm">
+      <i data-lucide="arrow-left"></i> Dashboard
+    </a>
   </div>
 </nav>
 
 <main class="container" style="flex:1; padding-top:32px; padding-bottom:60px;">
 
-  <!-- ── Application header ── -->
-  <div class="app-header" style="display:flex; align-items:flex-start; justify-content:space-between;
-                                  flex-wrap:wrap; gap:16px; margin-bottom:32px;">
-    <div>
-      <div id="app-company" style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:4px;"></div>
-      <h1 id="app-job-title" style="font-size:1.75rem; font-weight:700; margin-bottom:12px;"></h1>
-      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+  <!-- Application header -->
+  <div class="app-header">
+    <div class="app-header-left">
+      <div class="app-company-name" id="app-company"></div>
+      <h1 id="app-job-title"></h1>
+      <div class="app-header-status">
         <select id="status-select" class="status-select">
           <option value="not_yet">Not Applied</option>
           <option value="applied">Applied</option>
@@ -31,127 +36,150 @@
           <option value="rejected">Rejected</option>
           <option value="offer">Offer Received</option>
         </select>
-        <span id="status-saved" style="font-size:0.8rem; color:#10b981; opacity:0;">Saved ✓</span>
+        <span id="status-saved" class="status-saved">
+          <i data-lucide="check"></i> Saved
+        </span>
       </div>
     </div>
-    <button class="btn btn-danger btn-sm" id="delete-btn">Delete Application</button>
+    <button class="btn btn-danger btn-sm" id="delete-btn">
+      <i data-lucide="trash-2"></i> Delete
+    </button>
   </div>
 
-  <!-- ── ADDED: No-draft banner — shown when application exists but kit hasn't been generated yet ── -->
-  <div id="no-draft-banner" class="hidden"
-       style="background:#fffbeb; border:1px solid #fcd34d; border-radius:12px;
-              padding:20px 24px; margin-bottom:24px; display:flex;
-              align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+  <!-- No-draft info banner -->
+  <div id="no-draft-banner" class="info-banner hidden">
     <div>
-      <div style="font-weight:600; color:#78350f;">AI kit not generated yet</div>
-      <div style="font-size:0.875rem; color:#92400e; margin-top:4px;">
-        Click "Generate Kit" to run all 4 agents (~20–30 seconds).
+      <div class="info-banner-title">AI kit not generated yet</div>
+      <div class="info-banner-desc">Click "Generate Kit" to run all 4 agents (~20–30 seconds).</div>
+    </div>
+    <button class="btn btn-primary" id="generate-kit-btn">
+      <i data-lucide="sparkles"></i> Generate Kit
+    </button>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="fit">
+      <i data-lucide="target"></i> Fit Analysis
+    </button>
+    <button class="tab-btn" data-tab="resume">
+      <i data-lucide="file-text"></i> Resume
+    </button>
+    <button class="tab-btn" data-tab="cover">
+      <i data-lucide="mail"></i> Cover Letter
+    </button>
+    <button class="tab-btn" data-tab="interview">
+      <i data-lucide="mic"></i> Interview Prep
+    </button>
+  </div>
+
+  <!-- TAB 1: Fit Analysis -->
+  <div id="tab-fit" class="tab-panel">
+    <div class="tab-header">
+      <h3>Fit Analysis</h3>
+      <div class="tab-header-actions">
+        <button class="btn btn-secondary btn-sm" id="regen-fit">
+          <i data-lucide="refresh-cw"></i> Regenerate
+        </button>
       </div>
     </div>
-    <button class="btn btn-primary" id="generate-kit-btn">✨ Generate Kit</button>
-  </div>
 
-  <!-- ── Tabs ── -->
-  <div class="tabs" style="display:flex; gap:4px; border-bottom:2px solid var(--color-border); margin-bottom:28px;">
-    <button class="tab-btn active" data-tab="fit">🎯 Fit Analysis</button>
-    <button class="tab-btn"        data-tab="resume">📝 Resume</button>
-    <button class="tab-btn"        data-tab="cover">✉️ Cover Letter</button>
-    <button class="tab-btn"        data-tab="interview">🎤 Interview Prep</button>
-  </div>
-
-  <!-- ═══ TAB 1: Fit Analysis ═══════════════════════════════════════════════ -->
-  <div id="tab-fit" class="tab-panel">
-    <!-- ADDED: Fit Analysis regenerate button (was missing; backend supports POST /regenerate/fit_analysis) -->
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h3 style="margin:0;">Fit Analysis</h3>
-      <button class="btn btn-secondary btn-sm" id="regen-fit">↺ Regenerate</button>
-    </div>
-    <div style="display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap;">
-
+    <div class="fit-layout">
       <!-- Score ring -->
-      <div style="text-align:center; flex-shrink:0;">
-        <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="44" fill="none" stroke="#e2e8f0" stroke-width="10"/>
-          <circle id="score-ring" cx="60" cy="60" r="44" fill="none"
-                  stroke="#3b82f6" stroke-width="10" stroke-linecap="round"
-                  stroke-dasharray="276.46"
-                  stroke-dashoffset="276.46"
-                  transform="rotate(-90 60 60)"
-                  style="transition: stroke-dashoffset 1s ease;"/>
-        </svg>
-        <div id="score-text" style="font-size:2.2rem; font-weight:800; margin-top:4px;"></div>
-        <div style="font-size:0.8rem; color:var(--color-text-muted);">match score</div>
+      <div class="score-ring-wrap">
+        <div class="score-ring">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle class="score-ring-track" cx="60" cy="60" r="44"/>
+            <circle class="score-ring-fill" id="score-ring" cx="60" cy="60" r="44"
+                    stroke-dasharray="276.46" stroke-dashoffset="276.46"
+                    transform="rotate(-90 60 60)"/>
+          </svg>
+          <div class="score-ring-text">
+            <span class="score-number" id="score-text"></span>
+          </div>
+        </div>
+        <span class="score-sublabel">match score</span>
       </div>
 
       <!-- Requirements breakdown -->
-      <div style="flex:1; min-width:240px;">
-        <h3 style="margin-bottom:12px;">Requirements Match</h3>
-        <div style="margin-bottom:16px;">
-          <div style="font-size:0.8rem; font-weight:600; color:#16a34a; margin-bottom:8px;">
-            ✓ You have these
+      <div class="fit-details">
+        <div class="requirements-section">
+          <div class="requirements-label match">
+            <i data-lucide="check-circle"></i> You have these
           </div>
-          <div id="fit-matching" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          <div class="pill-group" id="fit-matching"></div>
         </div>
-        <div>
-          <div style="font-size:0.8rem; font-weight:600; color:#dc2626; margin-bottom:8px;">
-            ✗ Gaps to address
-          </div>
-          <div id="fit-missing" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
-        </div>
-        <div id="fit-summary" style="margin-top:20px; font-size:0.9rem;
-             color:var(--color-text-muted); line-height:1.7;"></div>
 
-        <!-- ADDED: skills_to_emphasize + key_keywords (returned by backend but not displayed before) -->
-        <div id="fit-extra" class="hidden" style="margin-top:20px;">
-          <div style="font-size:0.8rem; font-weight:600; color:#1d4ed8; margin-bottom:8px;">
-            💡 Skills to Emphasise
+        <div class="requirements-section">
+          <div class="requirements-label gap">
+            <i data-lucide="x-circle"></i> Gaps to address
           </div>
-          <div id="fit-skills" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:16px;"></div>
-          <div style="font-size:0.8rem; font-weight:600; color:#7c3aed; margin-bottom:8px;">
-            🔑 Key JD Keywords
+          <div class="pill-group" id="fit-missing"></div>
+        </div>
+
+        <p class="fit-summary" id="fit-summary"></p>
+
+        <div id="fit-extra" class="fit-extra-section hidden">
+          <div class="requirements-section">
+            <div class="requirements-label skills">
+              <i data-lucide="lightbulb"></i> Skills to emphasise
+            </div>
+            <div class="pill-group" id="fit-skills"></div>
           </div>
-          <div id="fit-keywords" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+          <div class="requirements-section" style="margin-top:16px;">
+            <div class="requirements-label keys">
+              <i data-lucide="key"></i> Key JD keywords
+            </div>
+            <div class="pill-group" id="fit-keywords"></div>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ═══ TAB 2: Resume ════════════════════════════════════════════════════ -->
+  <!-- TAB 2: Resume -->
   <div id="tab-resume" class="tab-panel hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h3 style="margin:0;">Rewritten Resume</h3>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-secondary btn-sm" id="regen-resume">↺ Regenerate</button>
-        <button class="btn btn-primary   btn-sm" id="download-resume">⬇ Download .txt</button>
+    <div class="tab-header">
+      <h3>Rewritten Resume</h3>
+      <div class="tab-header-actions">
+        <button class="btn btn-secondary btn-sm" id="regen-resume">
+          <i data-lucide="refresh-cw"></i> Regenerate
+        </button>
+        <button class="btn btn-primary btn-sm" id="download-resume">
+          <i data-lucide="download"></i> Download .txt
+        </button>
       </div>
     </div>
-    <div class="diff-view" id="resume-diff">
-      <!-- populated by JS: pairs of (original → rewritten) bullet points -->
-    </div>
+    <div class="diff-view" id="resume-diff"></div>
   </div>
 
-  <!-- ═══ TAB 3: Cover Letter ══════════════════════════════════════════════ -->
+  <!-- TAB 3: Cover Letter -->
   <div id="tab-cover" class="tab-panel hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
-      <h3 style="margin:0;">Cover Letter</h3>
-      <div style="display:flex; gap:10px;">
-        <button class="btn btn-secondary btn-sm" id="regen-cover">↺ Regenerate</button>
-        <button class="btn btn-primary   btn-sm" id="download-docx">⬇ Download .docx</button>
+    <div class="tab-header">
+      <h3>Cover Letter</h3>
+      <div class="tab-header-actions">
+        <button class="btn btn-secondary btn-sm" id="regen-cover">
+          <i data-lucide="refresh-cw"></i> Regenerate
+        </button>
+        <button class="btn btn-primary btn-sm" id="download-docx">
+          <i data-lucide="download"></i> Download .docx
+        </button>
       </div>
     </div>
-    <div class="cover-letter-body" id="cover-letter-text"
-         style="white-space:pre-wrap; line-height:1.9; font-size:0.95rem;
-                background:var(--color-surface); border:1px solid var(--color-border);
-                border-radius:12px; padding:28px 32px;"></div>
+    <div class="cover-letter-body" id="cover-letter-text"></div>
   </div>
 
-  <!-- ═══ TAB 4: Interview Prep ════════════════════════════════════════════ -->
+  <!-- TAB 4: Interview Prep -->
   <div id="tab-interview" class="tab-panel hidden">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-      <h3 style="margin:0;">Interview Prep — 10 Questions</h3>
-      <button class="btn btn-secondary btn-sm" id="regen-interview">↺ Regenerate</button>
+    <div class="tab-header">
+      <h3>Interview Prep — 10 Questions</h3>
+      <div class="tab-header-actions">
+        <button class="btn btn-secondary btn-sm" id="regen-interview">
+          <i data-lucide="refresh-cw"></i> Regenerate
+        </button>
+      </div>
     </div>
-    <div id="interview-accordion"></div>
+    <div class="interview-list" id="interview-accordion"></div>
   </div>
 
 </main>
@@ -166,7 +194,7 @@
 
   let appData = null;
 
-  // ── Load application data ─────────────────────────────────────────────────
+  // ── Load application ──────────────────────────────────────────────────────
   async function loadApp() {
     try {
       appData = await api.get(`/applications/${appId}`);
@@ -174,23 +202,21 @@
       document.getElementById('app-job-title').textContent = appData.job_title;
       document.getElementById('status-select').value       = appData.status;
 
-      // REMOVED: console.log debug lines that were left in prod code
       if (appData.draft) {
         renderAllTabs(appData.draft);
         document.getElementById('no-draft-banner').classList.add('hidden');
       } else {
-        // ADDED: show banner with Generate button when draft doesn't exist yet
         document.getElementById('no-draft-banner').classList.remove('hidden');
       }
     } catch (err) {
       toast(err.message, 'error');
     }
+    lucide.createIcons();
   }
 
   // ── Status dropdown ───────────────────────────────────────────────────────
   document.getElementById('status-select').addEventListener('change', async (e) => {
     try {
-      // BUG FIX: was /applications/${appId} — backend endpoint is /applications/{id}/status
       await api.patch(`/applications/${appId}/status`, { status: e.target.value });
       const el = document.getElementById('status-saved');
       el.style.opacity = '1';
@@ -219,22 +245,14 @@
 
   // ── Render all artifact tabs ──────────────────────────────────────────────
   function renderAllTabs(draft) {
-    if (draft.fit_analysis && typeof draft.fit_analysis === 'string') {
-        draft.fit_analysis = JSON.parse(draft.fit_analysis);
-    }
-
-    if (draft.resume_rewrite && typeof draft.resume_rewrite === 'string') {
-        draft.resume_rewrite = JSON.parse(draft.resume_rewrite);
-    }
-
-    if (draft.interview_qa && typeof draft.interview_qa === 'string') {
-        draft.interview_qa = JSON.parse(draft.interview_qa);
-    }
+    if (draft.fit_analysis   && typeof draft.fit_analysis   === 'string') draft.fit_analysis   = JSON.parse(draft.fit_analysis);
+    if (draft.resume_rewrite && typeof draft.resume_rewrite === 'string') draft.resume_rewrite = JSON.parse(draft.resume_rewrite);
+    if (draft.interview_qa   && typeof draft.interview_qa   === 'string') draft.interview_qa   = JSON.parse(draft.interview_qa);
 
     if (draft.fit_analysis)  renderFit(draft.fit_analysis);
     if (draft.resume_rewrite) renderResume(draft.resume_rewrite);
     if (draft.cover_letter)  renderCoverLetter(draft.cover_letter);
-    if (draft.interview_qa) renderInterview(draft.interview_qa);
+    if (draft.interview_qa)  renderInterview(draft.interview_qa);
   }
 
   // ── Tab 1: Fit Analysis ───────────────────────────────────────────────────
@@ -249,50 +267,37 @@
 
     document.getElementById('fit-matching').innerHTML =
       (fit.matching_requirements || []).map(r =>
-        `<span style="background:#dcfce7; color:#166534; padding:4px 12px;
-                      border-radius:100px; font-size:0.8rem;">${r}</span>`
+        `<span class="pill pill-success">${r}</span>`
       ).join('');
 
     document.getElementById('fit-missing').innerHTML =
       (fit.missing_requirements || []).map(r =>
-        `<span style="background:#fee2e2; color:#991b1b; padding:4px 12px;
-                      border-radius:100px; font-size:0.8rem;">${r}</span>`
+        `<span class="pill pill-danger">${r}</span>`
       ).join('');
 
     document.getElementById('fit-summary').textContent = fit.overall_summary || '';
 
-    // ADDED: render skills_to_emphasize and key_keywords (were generated by backend but never displayed)
     const skills   = fit.skills_to_emphasize || [];
     const keywords = fit.key_keywords || [];
     if (skills.length || keywords.length) {
       document.getElementById('fit-extra').classList.remove('hidden');
       document.getElementById('fit-skills').innerHTML = skills.map(s =>
-        `<span style="background:#eff6ff; color:#1d4ed8; padding:4px 12px;
-                      border-radius:100px; font-size:0.8rem;">${s}</span>`
+        `<span class="pill pill-primary">${s}</span>`
       ).join('');
       document.getElementById('fit-keywords').innerHTML = keywords.map(k =>
-        `<span style="background:#f5f3ff; color:#6d28d9; padding:4px 12px;
-                      border-radius:100px; font-size:0.8rem;">${k}</span>`
+        `<span class="pill pill-purple">${k}</span>`
       ).join('');
     }
   }
 
   // ── Tab 2: Resume ─────────────────────────────────────────────────────────
   function renderResume(rewrite) {
-    console.log("RESUME", rewrite);
     const container = document.getElementById('resume-diff');
     const changes   = rewrite.changes || [];
     container.innerHTML = changes.map(c => `
-      <div class="diff-row" style="display:grid; grid-template-columns:1fr 1fr;
-           gap:16px; padding:16px; border-bottom:1px solid var(--color-border);">
-        <div style="font-size:0.88rem; color:#991b1b; text-decoration:line-through;
-                    background:#fff1f2; border-radius:8px; padding:12px;">
-          ${c.original}
-        </div>
-        <div style="font-size:0.88rem; color:#166534; background:#dcfce7;
-                    border-radius:8px; padding:12px;">
-          ${c.rewritten}
-        </div>
+      <div class="diff-row">
+        <div class="diff-cell del">${c.original}</div>
+        <div class="diff-cell add">${c.rewritten}</div>
       </div>
     `).join('');
   }
@@ -302,11 +307,8 @@
     document.getElementById('cover-letter-text').textContent = cl || '';
   }
 
-  // Download .docx
   document.getElementById('download-docx').addEventListener('click', async () => {
     try {
-      // BUG FIX 1: URL was /cover-letter — backend serves at /download/cover-letter
-      // BUG FIX 2: api.getBlob did not exist — now added to api.js
       const blob = await api.getBlob(`/applications/${appId}/download/cover-letter`);
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
@@ -317,7 +319,6 @@
     } catch (err) { toast(err.message, 'error'); }
   });
 
-  // Resume download — plain text
   document.getElementById('download-resume').addEventListener('click', async () => {
     try {
       const blob = await api.getBlob(`/applications/${appId}/download/resume`);
@@ -332,72 +333,50 @@
 
   // ── Tab 4: Interview Prep ─────────────────────────────────────────────────
   function renderInterview(prep) {
-    const questions = Array.isArray(prep)
-        ? prep
-        : (prep.questions || []);
-    const accordion = document.getElementById('interview-accordion');
-    accordion.innerHTML = questions.map((q, i) => `
-      <div class="accordion-card" style="border:1px solid var(--color-border); border-radius:12px;
-           margin-bottom:12px; overflow:hidden;">
-        <button class="accordion-header" onclick="toggleAccordion(${i})"
-                style="width:100%; text-align:left; padding:18px 20px; background:none;
-                       border:none; cursor:pointer; display:flex; align-items:center;
-                       justify-content:space-between; gap:16px;">
-          <div style="display:flex; align-items:center; gap:12px;">
-            <span style="background:#eff6ff; color:#1d4ed8; font-size:0.72rem; font-weight:700;
-                         padding:3px 10px; border-radius:100px; text-transform:uppercase;
-                         flex-shrink:0;">${q.type}</span>
-            <span style="font-weight:600; font-size:0.95rem;">${q.question}</span>
-          </div>
-          <span id="acc-icon-${i}" style="font-size:1.2rem; flex-shrink:0;">+</span>
+    const questions = Array.isArray(prep) ? prep : (prep.questions || []);
+    const container = document.getElementById('interview-accordion');
+
+    const typeClass = { behavioral: 'type-behavioral', technical: 'type-technical', situational: 'type-situational' };
+
+    container.innerHTML = questions.map((q, i) => `
+      <div class="interview-card" id="icard-${i}">
+        <button class="interview-card-header" onclick="toggleCard(${i})">
+          <span class="interview-type-badge ${typeClass[q.type] || 'type-behavioral'}">${q.type}</span>
+          <span class="interview-question">${q.question}</span>
+          <span class="interview-chevron"><i data-lucide="chevron-down"></i></span>
         </button>
-        <div id="acc-body-${i}" class="hidden"
-             style="padding:0 20px 20px; border-top:1px solid var(--color-border);">
-          <div style="margin-top:16px;">
-            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase;
-                        color:var(--color-text-muted); margin-bottom:8px;">Sample Answer</div>
-            <p style="font-size:0.9rem; line-height:1.75;">${q.sample_answer}</p>
-          </div>
-          <div style="margin-top:16px; background:#fffbeb; border-left:3px solid #f59e0b;
-                      border-radius:0 8px 8px 0; padding:12px 16px;">
-            <div style="font-size:0.75rem; font-weight:700; color:#92400e;
-                        margin-bottom:4px;">💡 TIP</div>
-            <p style="font-size:0.85rem; color:#78350f; margin:0;">${q.tip}</p>
+        <div class="interview-card-body">
+          <div class="interview-answer-label">Sample Answer</div>
+          <p class="interview-answer">${q.sample_answer}</p>
+          <div class="tip-box">
+            <div class="tip-box-label"><i data-lucide="lightbulb"></i> Tip</div>
+            <p class="tip-box-text">${q.tip}</p>
           </div>
         </div>
       </div>
     `).join('');
+
+    lucide.createIcons();
   }
 
-  window.toggleAccordion = function(i) {
-    const body = document.getElementById(`acc-body-${i}`);
-    const icon = document.getElementById(`acc-icon-${i}`);
-    const open = !body.classList.contains('hidden');
-    body.classList.toggle('hidden', open);
-    icon.textContent = open ? '+' : '−';
+  window.toggleCard = function(i) {
+    document.getElementById(`icard-${i}`).classList.toggle('open');
   };
 
-  // ── Regenerate buttons ────────────────────────────────────────────────────
-
-  // Maps the backend path-param section name → Draft model field name.
-  // The backend uses short names in the URL; the DB field names differ.
+  // ── Regenerate ────────────────────────────────────────────────────────────
   const SECTION_FIELD = {
-    fit_analysis: 'fit_analysis',   // stores JSON
-    resume:       'resume_rewrite', // stores JSON {text, changes}
-    cover_letter: 'cover_letter',   // stores plain text
-    interview:    'interview_qa',   // stores JSON array
+    fit_analysis: 'fit_analysis',
+    resume:       'resume_rewrite',
+    cover_letter: 'cover_letter',
+    interview:    'interview_qa',
   };
 
   async function regenerate(section, renderFn) {
     try {
-      toast('Regenerating...', 'info');
-      // BUG FIX 1: was ?section=X (query param) — backend expects /{section} (path param)
-      // BUG FIX 2: was data[section] — API returns full ApplicationOut; draft fields are at data.draft
-      // BUG FIX 3: section names must match backend: 'resume' not 'resume_rewrite', 'interview' not 'interview_qa'
+      toast('Regenerating…', 'info');
       const data  = await api.post(`/applications/${appId}/regenerate/${section}`, {});
       const field = SECTION_FIELD[section];
       let value   = data.draft ? data.draft[field] : null;
-      // Parse JSON strings — same logic as renderAllTabs()
       if ((field === 'fit_analysis' || field === 'resume_rewrite' || field === 'interview_qa')
           && typeof value === 'string') {
         value = JSON.parse(value);
@@ -407,11 +386,8 @@
     } catch (err) { toast(err.message, 'error'); }
   }
 
-  // BUG FIX: section name sent to backend must match its path param values
-  //   'resume_rewrite' → 'resume'   (old name caused 400 "Invalid section")
-  //   'interview_qa'   → 'interview' (old name caused 400 "Invalid section")
   document.getElementById('regen-fit').addEventListener('click',
-    () => regenerate('fit_analysis', renderFit));         // ADDED: fit regen was missing
+    () => regenerate('fit_analysis', renderFit));
   document.getElementById('regen-resume').addEventListener('click',
     () => regenerate('resume', renderResume));
   document.getElementById('regen-cover').addEventListener('click',
@@ -419,14 +395,13 @@
   document.getElementById('regen-interview').addEventListener('click',
     () => regenerate('interview', renderInterview));
 
-  // ── ADDED: Generate Kit button (shown when application has no draft yet) ──
+  // ── Generate Kit button ───────────────────────────────────────────────────
   document.getElementById('generate-kit-btn').addEventListener('click', async () => {
     const btn = document.getElementById('generate-kit-btn');
     btn.disabled  = true;
     btn.innerHTML = '<span class="spinner"></span> Running agents…';
     try {
       await api.post(`/applications/${appId}/generate`, {});
-      // Reload to get the fresh draft
       appData = await api.get(`/applications/${appId}`);
       if (appData.draft) {
         renderAllTabs(appData.draft);
@@ -435,11 +410,13 @@
       }
     } catch (err) {
       toast(err.message, 'error');
-      btn.disabled    = false;
-      btn.textContent = '✨ Generate Kit';
+      btn.disabled = false;
+      btn.innerHTML = '<i data-lucide="sparkles"></i> Generate Kit';
+      lucide.createIcons();
     }
   });
 
+  lucide.createIcons();
   loadApp();
 </script>
 </body>

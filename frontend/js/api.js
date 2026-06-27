@@ -1,5 +1,7 @@
 // ===== CONFIGURATION =====
-const BASE_URL = 'http://localhost:8000';
+// Resolved by frontend/js/config.js (loaded as a plain <script> before this module).
+// Falls back to localhost when config.js is absent (e.g. running tests directly).
+const BASE_URL = window.BACKEND_URL || 'http://localhost:8000';
 
 // ===== AUTH STATE =====
 // Wraps localStorage so all token/user access goes through one object.

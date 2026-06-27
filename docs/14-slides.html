@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>14 · Slide Deck Outline — Co-Pilot Guide</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .slide-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; margin: 20px 0; overflow: hidden;
+  }
+  .slide-header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    background: #fff;
+  }
+  .slide-num {
+    background: #dc2626; color: #fff; font-size: 0.75rem;
+    font-weight: 800; padding: 4px 10px; border-radius: 100px;
+    white-space: nowrap;
+  }
+  .slide-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+  .slide-body { padding: 18px 22px; }
+  .slide-body ul { margin: 0 0 0 18px; }
+  .slide-body li { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 5px; }
+  .slide-visual {
+    margin-top: 12px; background: var(--primary-bg); border: 1px solid #bfdbfe;
+    border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: #1e40af;
+  }
+  .slide-visual::before { content: '📐 Visual: '; font-weight: 600; }
+
+  .prompt-box {
+    background: #1e293b; border-radius: 12px; padding: 24px 28px;
+    margin: 20px 0 30px;
+  }
+  .prompt-box pre {
+    white-space: pre-wrap; font-family: 'Consolas', monospace;
+    font-size: 0.84rem; color: #e2e8f0; line-height: 1.7; margin: 0;
+  }
+  .prompt-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+  }
+  .prompt-label { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  .design-tokens {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px; margin: 18px 0 28px;
+  }
+  .token-swatch {
+    border-radius: 10px; padding: 14px 16px; font-size: 0.8rem; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Build</div>
+  <nav>
+    <a href="01-setup.html">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html">02 · Database &amp; Models</a>
+    <a href="03-auth.html">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+  <div class="nav-section">Fixes Applied</div>
+  <nav>
+    <a href="10-bugs-fixed.html">10 · Bugs Fixed</a>
+    <a href="11-features-added.html">11 · Features Added</a>
+  </nav>
+  <div class="nav-section">Ship It</div>
+  <nav>
+    <a href="12-deployment.html">12 · Cloud Deployment</a>
+    <a href="13-video-script.html">13 · Video Script</a>
+    <a href="14-slides.html" class="active">14 · Slide Deck Outline</a>
+  </nav>
+  <div class="nav-section">───</div>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 14</div>
+    <h1 class="page-title">Slide Deck Outline</h1>
+    <p class="page-subtitle">A 12–15 slide PPT outline for the capstone presentation. Includes an AI prompt you can paste into Gamma or ChatGPT to generate a starting draft.</p>
+  </div>
+
+  <!-- Design tokens -->
+  <h2>Slide Design Theme</h2>
+  <p>Match the app's dark theme. Use these values in Canva, Gamma, or PowerPoint.</p>
+
+  <div class="design-tokens">
+    <div class="token-swatch" style="background:#0f172a; color:#f1f5f9;">Background<br><small>#0f172a</small></div>
+    <div class="token-swatch" style="background:#1e293b; color:#94a3b8;">Surface<br><small>#1e293b</small></div>
+    <div class="token-swatch" style="background:#3b82f6; color:#fff;">Accent Blue<br><small>#3b82f6</small></div>
+    <div class="token-swatch" style="background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0;">Text<br><small>#f1f5f9</small></div>
+    <div class="token-swatch" style="background:#64748b; color:#fff;">Muted<br><small>#64748b</small></div>
+  </div>
+
+  <p style="margin-top:-8px;"><strong>Font:</strong> Inter (matches the app). Heading weight: 700–800. Body weight: 400–500. Keep slides sparse — screenshots carry the weight. One key point per slide maximum.</p>
+
+  <!-- AI Prompt -->
+  <h2>Gamma / ChatGPT Prompt — Generate a Draft Deck</h2>
+  <p>Paste this into <strong>Gamma</strong> (gamma.app → New → Generate with AI) or ChatGPT to get a starting slide deck you can then edit:</p>
+
+  <div class="prompt-box">
+    <div class="prompt-header">
+      <span class="prompt-label">AI slide generation prompt — paste into Gamma or ChatGPT</span>
+      <button class="copy-btn" onclick="copyPrompt(this)" style="background:#334155; color:#94a3b8; border:1px solid #475569; padding:5px 14px; border-radius:6px; font-size:0.76rem; cursor:pointer; font-family:inherit;">Copy</button>
+    </div>
+    <pre id="gamma-prompt">You are a presentation designer. Create a 12-slide PowerPoint outline for a capstone project called "Job Application Co-Pilot".
+
+Project summary:
+- Full-stack web app built with FastAPI (backend) and vanilla HTML/CSS/JS (frontend)
+- Users upload a resume PDF and paste a job description
+- Four AI agents run in parallel using Groq's LLaMA 3.3 70B model to generate:
+  1. A fit analysis with a match score and skill gap breakdown
+  2. A rewritten resume with JD keywords injected via side-by-side diff
+  3. A personalised cover letter (downloadable as .docx)
+  4. 10 interview Q&As with sample answers and coaching tips
+- Backend deployed on Render with PostgreSQL; frontend on Netlify
+- Auth: JWT tokens stored in localStorage, bcrypt password hashing
+- Key innovation: parallel agent execution cuts generation time from ~45s to ~15s
+
+Slides to cover (in order):
+1. Title — project name, tagline, name/date
+2. Problem — time cost of tailoring job applications; most applicants get no response
+3. Solution — one upload, four AI artifacts, 30 seconds
+4. Tech Stack — FastAPI, SQLAlchemy, Alembic, Groq (LLaMA 3.3 70B), PostgreSQL, Vanilla JS, Netlify, Render
+5. Architecture diagram — Browser → Netlify → Render (FastAPI) → PostgreSQL → Groq API
+6. Agent Pipeline — 4-stage flow with parallel execution timing (show 3× speedup)
+7. Demo: Dashboard — stat cards, filter by status, app card grid
+8. Demo: New Application Wizard — 3-step wizard, PDF drop, progress screen
+9. Demo: Fit Analysis — score ring, matched/missing requirements, keyword pills
+10. Demo: Resume & Cover Letter — diff view + .docx download
+11. Demo: Interview Prep — accordion Q&A with sample answers
+12. Deployment — Render + PostgreSQL (backend) / Netlify (frontend)
+13. Key Engineering Decisions — table comparing decision vs alternative vs reason
+14. Challenges & Learnings — 3-4 bullets
+15. What's Next + Close — future features + closing line
+
+Use a dark theme (#0f172a background, #3b82f6 accent, Inter font). Keep each slide to one key point with a supporting visual or diagram description. Output as a structured markdown outline with slide numbers, headings, bullet points, and visual descriptions.</pre>
+  </div>
+
+  <!-- Slide-by-slide outline -->
+  <h2>Slide-by-Slide Outline</h2>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 1</span><span class="slide-title">Title Slide</span></div>
+    <div class="slide-body">
+      <ul>
+        <li><strong>Heading:</strong> Job Application Co-Pilot</li>
+        <li><strong>Subheading:</strong> AI-Powered Multi-Agent Application Assistant</li>
+        <li>Your name / course / date</li>
+      </ul>
+      <div class="slide-visual">App screenshot — dashboard or application detail page</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 2</span><span class="slide-title">The Problem</span></div>
+    <div class="slide-body">
+      <ul>
+        <li><strong>Heading:</strong> The Hidden Cost of Job Hunting</li>
+        <li>Hours spent tailoring resumes per role</li>
+        <li>Generic cover letters that don't land</li>
+        <li>Walking into interviews underprepared</li>
+        <li><strong>Stat (optional):</strong> Average job seeker sends 100–200 applications before an offer</li>
+      </ul>
+      <div class="slide-visual">Simple icon row or 3-column problem layout</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 3</span><span class="slide-title">The Solution</span></div>
+    <div class="slide-body">
+      <ul>
+        <li><strong>Heading:</strong> One Upload. Four AI Artifacts. 30 Seconds.</li>
+        <li>Fit Analysis — Match score &amp; gap breakdown</li>
+        <li>Resume Rewrite — JD keywords injected, side-by-side diff</li>
+        <li>Cover Letter — One-page tailored letter, .docx download</li>
+        <li>Interview Prep — 10 Q&As with sample answers &amp; coaching tips</li>
+      </ul>
+      <div class="slide-visual">Flow diagram: PDF + JD → [4 Agent boxes] → Kit</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 4</span><span class="slide-title">Tech Stack</span></div>
+    <div class="slide-body">
+      <ul>
+        <li><strong>Backend:</strong> FastAPI · SQLAlchemy · Alembic · Groq (LLaMA 3.3 70B) · PostgreSQL</li>
+        <li><strong>Frontend:</strong> Vanilla HTML/CSS/JS · Lucide Icons · Netlify</li>
+        <li><strong>Infrastructure:</strong> Render (API + DB) · GitHub</li>
+      </ul>
+      <div class="slide-visual">Tech logo row or two-column layout</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 5</span><span class="slide-title">System Architecture</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>Browser → Netlify (static frontend) → Render (FastAPI) → PostgreSQL → Groq API</li>
+        <li>Callouts: JWT auth on every request, multipart PDF upload, parallel agent pipeline</li>
+      </ul>
+      <div class="slide-visual">5-box horizontal flow with arrows and short labels under each box</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 6</span><span class="slide-title">Agent Pipeline</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>PDF Parser → extract resume text</li>
+        <li>Fit Analyst → match score + gap analysis (runs first)</li>
+        <li>Resume Writer + Cover Letter + Interviewer → run in <strong>parallel</strong></li>
+        <li><strong>Key stat:</strong> Sequential ~45s → Parallel ~15–20s (3× faster)</li>
+      </ul>
+      <div class="slide-visual">4-step flow with timing annotations and a "parallel" bracket around agents 2-4</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 7</span><span class="slide-title">Demo: Dashboard</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>Pipeline status per application (kit ready / pending)</li>
+        <li>Filter by application status</li>
+        <li>Stat cards — Total / Applied / Interviewing / Offers</li>
+      </ul>
+      <div class="slide-visual">Full-width dashboard screenshot with callout annotations</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 8</span><span class="slide-title">Demo: New Application Wizard</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>3-step wizard with horizontal step indicator</li>
+        <li>PDF drag-and-drop upload</li>
+        <li>Real-time agent progress screen</li>
+      </ul>
+      <div class="slide-visual">Step 2 (job details form) or Step 3 (progress screen) screenshot</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 9</span><span class="slide-title">Demo: Fit Analysis</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>Animated match score ring (0–100%)</li>
+        <li>Matched requirements (green pills) vs gap requirements (red pills)</li>
+        <li>JD keyword extraction &amp; skills to emphasise</li>
+      </ul>
+      <div class="slide-visual">Fit Analysis tab screenshot with callouts on score ring and requirement pills</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 10</span><span class="slide-title">Demo: Resume &amp; Cover Letter</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>Side-by-side diff — original vs rewritten (red strikethrough / green text)</li>
+        <li>Download rewritten resume as .txt</li>
+        <li>Cover letter — full one-page, download as .docx</li>
+      </ul>
+      <div class="slide-visual">Split screenshot — diff view (left) + cover letter text (right)</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 11</span><span class="slide-title">Demo: Interview Prep</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>10 questions: Behavioral / Technical / Situational</li>
+        <li>Accordion layout — click to expand each card</li>
+        <li>Sample answer + coaching tip per question</li>
+      </ul>
+      <div class="slide-visual">Accordion list screenshot with one card open showing sample answer + tip</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 12</span><span class="slide-title">Cloud Deployment</span></div>
+    <div class="slide-body">
+      <ul>
+        <li><strong>Render (Backend):</strong> Web Service connected to GitHub, auto-deploys on push, PostgreSQL add-on, env vars for secrets</li>
+        <li><strong>Netlify (Frontend):</strong> Static site drag-and-drop, <code>config.js</code> points to Render URL, CORS locked to Netlify domain</li>
+      </ul>
+      <div class="slide-visual">Two-column layout: Render card (left) / Netlify card (right)</div>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 13</span><span class="slide-title">Key Engineering Decisions</span></div>
+    <div class="slide-body">
+      <table style="font-size:0.82rem; margin:0;">
+        <thead><tr><th>Decision</th><th>Alternative</th><th>Reason</th></tr></thead>
+        <tbody>
+          <tr><td>Groq (LLaMA 3.3 70B)</td><td>OpenAI GPT-4</td><td>Free tier, low latency</td></tr>
+          <tr><td>Parallel agent execution</td><td>Sequential</td><td>3× faster generation</td></tr>
+          <tr><td>SQLite → PostgreSQL via env var</td><td>Fixed DB</td><td>Zero-friction local dev</td></tr>
+          <tr><td>Static HTML frontend</td><td>React/Next.js</td><td>No build step, simpler deploy</td></tr>
+          <tr><td>JWT in localStorage</td><td>Server sessions</td><td>Stateless, scales horizontally</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 14</span><span class="slide-title">Challenges &amp; Learnings</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>Designing prompt chains that produce structured JSON reliably</li>
+        <li>Managing parallel agent execution inside a synchronous FastAPI endpoint</li>
+        <li>SQLite to PostgreSQL migration with Alembic — environment-aware config</li>
+        <li>CORS in production — matching origin headers between Render and Netlify</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide-card">
+    <div class="slide-header"><span class="slide-num">Slide 15</span><span class="slide-title">What's Next + Close</span></div>
+    <div class="slide-body">
+      <ul>
+        <li>LinkedIn job scraper — auto-fill JD from a URL</li>
+        <li>Application tracker with email reminders</li>
+        <li>Multi-resume profiles (switch resume per application)</li>
+        <li>Voice mock interview with speech-to-text scoring</li>
+      </ul>
+      <div class="slide-visual">Closing line: "From blank resume to interview-ready kit, in 30 seconds." + GitHub repo QR code</div>
+    </div>
+  </div>
+
+  <!-- Project metrics box -->
+  <h2>Project Metrics to Include on Slides</h2>
+
+  <table>
+    <thead><tr><th>Metric</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Lines of code</td><td>~2,500 (backend ~1,800, frontend ~700)</td></tr>
+      <tr><td>API endpoints</td><td>10</td></tr>
+      <tr><td>Database tables</td><td>3 (users, applications, drafts)</td></tr>
+      <tr><td>AI agents</td><td>4</td></tr>
+      <tr><td>Generation time</td><td>15–30 seconds (parallel execution)</td></tr>
+      <tr><td>Artifacts per application</td><td>4</td></tr>
+      <tr><td>Parallel speedup</td><td>~3× vs sequential (45s → 15s)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-nav">
+    <a href="13-video-script.html" class="nav-card">
+      <span class="nav-dir">← Previous</span>
+      <span>13 · Video Script</span>
+    </a>
+    <a href="index.html" class="nav-card next">
+      <span class="nav-dir">↑ Back to</span>
+      <span>Home</span>
+    </a>
+  </div>
+</main>
+
+<script>
+function copyPrompt(btn) {
+  const text = document.getElementById('gamma-prompt').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

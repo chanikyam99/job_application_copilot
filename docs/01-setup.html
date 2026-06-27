@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>01 · Architecture &amp; Setup — Co-Pilot Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Build</div>
+  <nav>
+    <a href="01-setup.html" class="active">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html">02 · Database &amp; Models</a>
+    <a href="03-auth.html">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+  <div class="nav-section">Fixes Applied</div>
+  <nav>
+    <a href="10-bugs-fixed.html">10 · Bugs Fixed</a>
+    <a href="11-features-added.html">11 · Features Added</a>
+  </nav>
+  <div class="nav-section">Ship It</div>
+  <nav>
+    <a href="12-deployment.html">12 · Cloud Deployment</a>
+    <a href="13-video-script.html">13 · Video Script</a>
+    <a href="14-slides.html">14 · Slide Deck Outline</a>
+  </nav>
+  <div class="nav-section">───</div>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 01</div>
+    <h1 class="page-title">Architecture &amp; Setup</h1>
+    <p class="page-subtitle">Every tool decision explained. Read this before writing any code — understanding WHY each piece exists makes the rest obvious.</p>
+  </div>
+
+  <!-- TOOL DECISIONS TABLE -->
+  <h2>Tool Decisions</h2>
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>Choice</th><th>WHY (one sentence)</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Frontend</td><td>Vanilla HTML + CSS + JS</td><td>4-page CRUD app with tabs and diff views — Streamlit's rerun model can't handle this cleanly</td></tr>
+      <tr><td>Backend</td><td>FastAPI + Uvicorn</td><td>Async-native (critical for 15-second AI calls), Pydantic validation built-in, auto Swagger docs</td></tr>
+      <tr><td>Database</td><td>SQLite + SQLAlchemy</td><td>Zero-setup file-on-disk for dev; swap DATABASE_URL to Postgres for deploy without changing any code</td></tr>
+      <tr><td>LLM</td><td>Groq llama-3.3-70b</td><td>Free tier, 5–10x faster than OpenAI, API-compatible so switching later is 3 lines</td></tr>
+      <tr><td>Multi-agent</td><td>Hand-rolled coordinator</td><td>Sequential → parallel DAG is 10 lines of asyncio.gather(); LangGraph would add 200 lines of boilerplate for zero benefit</td></tr>
+      <tr><td>PDF parse</td><td>pypdf</td><td>Pure Python, no system deps (no Poppler), handles text-based PDFs well</td></tr>
+      <tr><td>Auth</td><td>JWT in localStorage</td><td>Stateless, works across page navigations, taught in M3 — simpler than cookie + session setup</td></tr>
+      <tr><td>Download</td><td>python-docx</td><td>De facto standard for .docx generation; users can edit the cover letter after download</td></tr>
+    </tbody>
+  </table>
+
+  <div class="why-box">
+    <div class="why-label">WHY asyncio.gather() is the key architectural win</div>
+    <p>Agent 1 (fit analysis) must run first — its output feeds the other 3 agents. But Agents 2, 3, and 4 are independent of each other. Running sequentially: ~45 seconds (3 × 15s). Running with <code>asyncio.gather()</code>: ~15 seconds (the slowest of the three). FastAPI is async-native, so this works without threading.</p>
+  </div>
+
+  <!-- STEP 1: Create folders -->
+  <h2><span class="step-num">1</span> Create the Project Folders</h2>
+  <p>Open a terminal and run these commands exactly:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">mkdir job-copilot
+cd job-copilot
+mkdir backend frontend
+cd backend
+mkdir agents routers utils
+cd ../frontend
+mkdir css js
+cd ../backend</code></pre>
+  </div>
+
+  <!-- STEP 2: Virtual environment -->
+  <h2><span class="step-num">2</span> Create the Virtual Environment</h2>
+
+  <div class="why-box">
+    <div class="why-label">WHY a virtual environment?</div>
+    <p>Isolates your project's packages from the system Python. Without it, installing <code>groq==0.9.0</code> could silently break another project that uses a different version. Always use venv for Python projects.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — from inside backend/ <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># Create the virtual environment
+python -m venv venv
+
+# Activate it:
+# Windows:
+venv\Scripts\activate
+
+# Mac / Linux:
+source venv/bin/activate
+
+# Your prompt should now show (venv) at the start</code></pre>
+  </div>
+
+  <!-- STEP 3: requirements.txt -->
+  <h2><span class="step-num">3</span> requirements.txt</h2>
+  <p>Create this file at <code>backend/requirements.txt</code>:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/requirements.txt <span class="lang">txt</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-text">fastapi==0.111.0
+psycopg2-binary==2.9.9
+uvicorn[standard]==0.29.0
+sqlalchemy==2.0.30
+alembic==1.13.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.9
+pypdf==4.2.0
+python-docx==1.1.2
+groq==0.9.0
+pydantic==2.7.1
+pydantic-settings==2.2.1
+python-dotenv==1.0.1
+httpx==0.27.0
+beautifulsoup4==4.12.3
+requests==2.32.3</code></pre>
+  </div>
+
+  <table>
+    <thead><tr><th>Package</th><th>WHY it's here</th></tr></thead>
+    <tbody>
+      <tr><td>fastapi</td><td>The web framework</td></tr>
+      <tr><td>uvicorn[standard]</td><td>The ASGI server that runs FastAPI; [standard] adds WebSocket + lifespan support</td></tr>
+      <tr><td>psycopg2-binary</td><td>PostgreSQL driver — required for Render production (DATABASE_URL switches from SQLite to PostgreSQL on deploy); not needed for local SQLite dev but harmless to install</td></tr>
+      <tr><td>sqlalchemy</td><td>ORM — write Python classes instead of SQL strings, prevents SQL injection by default</td></tr>
+      <tr><td>alembic</td><td>Database migrations — schema changes without dropping tables (for future updates)</td></tr>
+      <tr><td>python-jose[cryptography]</td><td>JWT encode/decode; [cryptography] adds RS256 support if you upgrade later</td></tr>
+      <tr><td>passlib[bcrypt]</td><td>Password hashing; bcrypt is intentionally slow (cost factor ~12) — brute-force resistant</td></tr>
+      <tr><td>bcrypt</td><td>Pinned explicitly to avoid a passlib version conflict on newer Python builds</td></tr>
+      <tr><td>python-multipart</td><td>Required for FastAPI to accept file uploads via Form() + File()</td></tr>
+      <tr><td>pypdf</td><td>PDF text extraction — pure Python, no system dependencies</td></tr>
+      <tr><td>python-docx</td><td>Generate .docx cover letter for download</td></tr>
+      <tr><td>groq</td><td>Groq API client with AsyncGroq for non-blocking AI calls</td></tr>
+      <tr><td>pydantic</td><td>Data validation — FastAPI uses this internally for all request/response bodies</td></tr>
+      <tr><td>python-dotenv</td><td>Loads .env file into os.environ so code reads from environment variables</td></tr>
+      <tr><td>httpx</td><td>Async HTTP client — for future JD URL scraping stretch feature</td></tr>
+      <tr><td>beautifulsoup4</td><td>HTML parsing — for scraping job descriptions from LinkedIn URLs (stretch)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — install packages <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">pip install -r requirements.txt</code></pre>
+  </div>
+
+  <!-- Procfile -->
+  <h2><span class="step-num">4</span> Procfile</h2>
+  <p>Create <code>backend/Procfile</code> (no file extension). This file tells Render and Railway exactly how to start the web process:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/Procfile <span class="lang">txt</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-text">web: uvicorn main:app --host 0.0.0.0 --port $PORT</code></pre>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY $PORT and not a hardcoded number?</div>
+    <p>Cloud platforms (Render, Railway, Heroku) allocate ports dynamically at runtime — they set the <code>$PORT</code> environment variable and then route external traffic to it. If you hardcode <code>--port 8000</code>, the platform's router can't reach your process and the deploy fails with a "service did not bind to the expected port" error. The <code>--host 0.0.0.0</code> flag tells uvicorn to accept connections on all network interfaces, not just localhost.</p>
+  </div>
+
+  <!-- .env.example -->
+  <h2><span class="step-num">5</span> .env.example</h2>
+  <p>Create <code>backend/.env.example</code> and commit it to git. It contains no real secrets — just placeholder values that document every environment variable the app needs:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/.env.example <span class="lang">env</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># ── Auth ─────────────────────────────────────────────────────────────────────
+SECRET_KEY=change-this-to-a-long-random-string-at-least-32-chars
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+
+# ── AI ────────────────────────────────────────────────────────────────────────
+GROQ_API_KEY=your-groq-api-key-here
+
+# ── Database ──────────────────────────────────────────────────────────────────
+# Local dev (SQLite):
+DATABASE_URL=sqlite:///./job_copilot.db
+
+# Production (PostgreSQL — Render / Railway add PostgreSQL and give you this URL):
+# DATABASE_URL=postgresql://user:password@host:5432/dbname
+
+# ── CORS ─────────────────────────────────────────────────────────────────────
+# Comma-separated list of allowed frontend origins.
+# Leave as * for local dev. Set to your deployed frontend URL in production.
+# Example: ALLOWED_ORIGINS=https://your-app.onrender.com
+ALLOWED_ORIGINS=*</code></pre>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY commit .env.example but not .env?</div>
+    <p><code>.env.example</code> is safe to commit because it contains no real secrets — it's pure documentation showing what variables the app expects. The real <code>.env</code> file (with your actual API key and secret key) must be added to <code>.gitignore</code> and never committed. On Render/Railway, you set these variables directly in the platform's "Environment" dashboard instead of uploading a .env file.</p>
+  </div>
+
+  <p>Create <code>backend/.env</code> with your actual values (add to .gitignore — never commit):</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/.env — your actual values <span class="lang">env</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">SECRET_KEY=x9k2p7q8m3n1v6w4j5r0t2y8u3i7o9p1a4s5d6f
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=10080
+GROQ_API_KEY=gsk_paste_your_real_key_here
+DATABASE_URL=sqlite:///./job_copilot.db
+ALLOWED_ORIGINS=*</code></pre>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">Get your Groq API key</div>
+    <p>1. Go to <strong>console.groq.com</strong> → Sign up (free, no credit card needed)<br>
+    2. Click API Keys → Create API Key<br>
+    3. Copy and paste it into your .env file<br>
+    4. <strong>ACCESS_TOKEN_EXPIRE_MINUTES = 10080</strong> is 7 days — long for convenience during development</p>
+  </div>
+
+  <p>Create <code>backend/.gitignore</code>:</p>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/.gitignore <span class="lang">txt</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-text">.env
+venv/
+__pycache__/
+*.pyc
+*.db
+*.db-shm
+*.db-wal</code></pre>
+  </div>
+
+  <!-- config.js -->
+  <h2><span class="step-num">6</span> frontend/js/config.js</h2>
+  <p>Create <code>frontend/js/config.js</code>. This is a plain script (not an ES module) that sets <code>window.BACKEND_URL</code> based on which hostname the page is loaded from:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/js/config.js <span class="lang">javascript</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">// ─── Backend URL Configuration ───────────────────────────────────────────────
+// Auto-switches between local dev and the deployed cloud backend.
+// After deploying to Render / Railway, replace the URL below with your
+// actual backend service URL (e.g. https://job-copilot-api.onrender.com).
+// ─────────────────────────────────────────────────────────────────────────────
+window.BACKEND_URL = (
+  location.hostname === 'localhost' ||
+  location.hostname === '127.0.0.1'  ||
+  location.hostname === ''
+)
+  ? 'http://localhost:8000'
+  : 'https://YOUR_BACKEND.onrender.com'; // &lt;-- replace after deploying</code></pre>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY a separate config.js and WHY must it load first?</div>
+    <p>The API module (<code>frontend/js/api.js</code>) reads <code>window.BACKEND_URL</code> at the top of its file when it is first imported. If <code>config.js</code> hasn't run yet, <code>window.BACKEND_URL</code> is <code>undefined</code> and every API call silently fails or hits the wrong URL.</p>
+    <p>The fix is load order: <code>config.js</code> must appear as a plain <code>&lt;script&gt;</code> tag <strong>before</strong> any <code>&lt;script type="module"&gt;</code> tags in every HTML page's <code>&lt;head&gt;</code>. Plain scripts run synchronously and block parsing; ES modules are deferred, so the plain script always finishes first.</p>
+    <p>The hostname check means the same source file works for both local development (localhost:8000) and the deployed cloud backend — you only need to update the Render URL once after your first deploy.</p>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">Load order in every HTML page</div>
+    <p>Every HTML page must include these two tags in this exact order inside <code>&lt;head&gt;</code>:</p>
+    <pre style="margin:0.5rem 0 0;"><code class="language-html">&lt;script src="../js/config.js"&gt;&lt;/script&gt;          &lt;!-- plain script, runs first --&gt;
+&lt;script type="module" src="../js/api.js"&gt;&lt;/script&gt; &lt;!-- module, deferred automatically --&gt;</code></pre>
+  </div>
+
+  <!-- STEP 7: Create empty __init__.py files -->
+  <h2><span class="step-num">7</span> Create Empty __init__.py Files</h2>
+  <p>Python needs <code>__init__.py</code> to treat folders as importable packages. Without these, <code>from agents.orchestrator import run_pipeline</code> fails with a ModuleNotFoundError.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — create empty init files <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># Windows (PowerShell):
+New-Item agents/__init__.py, routers/__init__.py, utils/__init__.py -ItemType File
+
+# Mac / Linux:
+touch agents/__init__.py routers/__init__.py utils/__init__.py</code></pre>
+  </div>
+
+  <p>All three files stay empty — just their existence is what matters for Python's import system.</p>
+
+  <div class="page-nav">
+    <a href="index.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>Home</span>
+    </a>
+    <a href="02-backend-core.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>02 · Database &amp; Models</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

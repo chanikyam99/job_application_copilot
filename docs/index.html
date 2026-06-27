@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Job Application Co-Pilot — Ultimate Guide</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Build</div>
+  <nav>
+    <a href="01-setup.html">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html">02 · Database &amp; Models</a>
+    <a href="03-auth.html">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+  <div class="nav-section">Fixes Applied</div>
+  <nav>
+    <a href="10-bugs-fixed.html">10 · Bugs Fixed</a>
+    <a href="11-features-added.html">11 · Features Added</a>
+  </nav>
+  <div class="nav-section">Ship It</div>
+  <nav>
+    <a href="12-deployment.html">12 · Cloud Deployment</a>
+    <a href="13-video-script.html">13 · Video Script</a>
+    <a href="14-slides.html">14 · Slide Deck Outline</a>
+  </nav>
+  <div class="nav-section">───</div>
+  <nav>
+    <a href="index.html" class="active">🏠 Home</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Ultimate Guide</div>
+    <h1 class="page-title">Job Application Co-Pilot</h1>
+    <p class="page-subtitle">One complete guide — build, fix, deploy, and present. 14 sections covering every file in the codebase, with code examples verified against the actual source.</p>
+  </div>
+
+  <h2>What You're Building</h2>
+  <p>A full-stack AI web app that takes a resume PDF and a job description, runs four LLM agents in parallel, and produces a complete application kit in under 30 seconds.</p>
+
+  <table>
+    <thead><tr><th>Agent</th><th>Output</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Fit Analyst</td><td>Match score (0–100%), matched requirements, skill gaps, JD keywords</td><td>~8s</td></tr>
+      <tr><td>Resume Writer</td><td>Bullet-by-bullet rewrite with JD keywords injected, side-by-side diff</td><td>~12s (parallel)</td></tr>
+      <tr><td>Cover Letter Writer</td><td>One-page targeted cover letter, downloadable as .docx</td><td>~10s (parallel)</td></tr>
+      <tr><td>Interview Coach</td><td>10 Q&amp;A pairs — behavioral, technical, situational — with sample answers and coaching tips</td><td>~15s (parallel)</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tech Stack</h2>
+  <table>
+    <thead><tr><th>Layer</th><th>Technology</th><th>Why</th></tr></thead>
+    <tbody>
+      <tr><td>Backend API</td><td>FastAPI (Python)</td><td>Auto-generates Swagger docs, async support, type-safe with Pydantic</td></tr>
+      <tr><td>ORM</td><td>SQLAlchemy + Alembic</td><td>Type-safe queries, schema migrations</td></tr>
+      <tr><td>Database</td><td>SQLite (local) → PostgreSQL (production)</td><td>Zero-config local dev; production-grade cloud DB</td></tr>
+      <tr><td>AI / LLM</td><td>Groq API — LLaMA 3.3 70B Versatile</td><td>Free tier, low latency, structured JSON output</td></tr>
+      <tr><td>Auth</td><td>JWT (python-jose) + bcrypt</td><td>Stateless — scales without server session storage</td></tr>
+      <tr><td>File handling</td><td>pypdf + python-docx</td><td>PDF text extraction; .docx generation</td></tr>
+      <tr><td>Frontend</td><td>Vanilla HTML + CSS + JavaScript (ES modules)</td><td>No build step, no framework — deploys by dropping a folder on Vercel</td></tr>
+      <tr><td>Icons</td><td>Lucide Icons CDN</td><td>No npm required, consistent SVG icon set</td></tr>
+      <tr><td>Backend deploy</td><td>Render (Web Service + PostgreSQL)</td><td>Free tier, GitHub auto-deploy, managed DB add-on</td></tr>
+      <tr><td>Frontend deploy</td><td>Vercel (static site)</td><td>Free, GitHub-connected, instant CDN</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Project File Structure</h2>
+  <div class="folder-tree">
+    <span class="dir">job-copilot/</span><br>
+    ├── <span class="dir">backend/</span><br>
+    │   ├── <span class="file">main.py</span> <span class="comment">── FastAPI app, CORS, router mounting</span><br>
+    │   ├── <span class="file">database.py</span> <span class="comment">── SQLAlchemy engine, session, Base</span><br>
+    │   ├── <span class="file">models.py</span> <span class="comment">── ORM: User, Application, Draft</span><br>
+    │   ├── <span class="file">schemas.py</span> <span class="comment">── Pydantic request/response models</span><br>
+    │   ├── <span class="file">auth.py</span> <span class="comment">── JWT encode/decode, bcrypt, get_current_user</span><br>
+    │   ├── <span class="file">requirements.txt</span> <span class="comment">── all Python dependencies</span><br>
+    │   ├── <span class="file">Procfile</span> <span class="comment">── Render/Railway start command</span><br>
+    │   ├── <span class="file">.env</span> <span class="comment">── secrets (never commit)</span><br>
+    │   ├── <span class="file">.env.example</span> <span class="comment">── placeholder values (safe to commit)</span><br>
+    │   ├── <span class="file">alembic.ini</span> <span class="comment">── Alembic config</span><br>
+    │   ├── <span class="dir">migrations/</span><br>
+    │   │   └── <span class="file">env.py</span> <span class="comment">── env-aware DB URL (SQLite ↔ PostgreSQL)</span><br>
+    │   ├── <span class="dir">agents/</span><br>
+    │   │   └── <span class="file">orchestrator.py</span> <span class="comment">── 4-agent LLM pipeline, parallel execution</span><br>
+    │   ├── <span class="dir">routers/</span><br>
+    │   │   ├── <span class="file">auth_router.py</span> <span class="comment">── /signup, /login, /me</span><br>
+    │   │   └── <span class="file">applications_router.py</span> <span class="comment">── CRUD, /generate, /download/*</span><br>
+    │   └── <span class="dir">utils/</span><br>
+    │       ├── <span class="file">pdf_parser.py</span> <span class="comment">── pypdf text extraction</span><br>
+    │       └── <span class="file">docx_generator.py</span> <span class="comment">── python-docx cover letter output</span><br>
+    ├── <span class="dir">frontend/</span><br>
+    │   ├── <span class="file">index.html</span> <span class="comment">── login / signup page</span><br>
+    │   ├── <span class="file">dashboard.html</span> <span class="comment">── application list with stats</span><br>
+    │   ├── <span class="file">new-application.html</span> <span class="comment">── 3-step wizard to create &amp; generate</span><br>
+    │   ├── <span class="file">application.html</span> <span class="comment">── 4-tab results view</span><br>
+    │   ├── <span class="dir">css/</span><br>
+    │   │   └── <span class="file">main.css</span> <span class="comment">── full design system, dark theme</span><br>
+    │   └── <span class="dir">js/</span><br>
+    │       ├── <span class="file">config.js</span> <span class="comment">── env-aware backend URL (window.BACKEND_URL)</span><br>
+    │       └── <span class="file">api.js</span> <span class="comment">── auth state, HTTP wrapper, helpers</span><br>
+    └── <span class="dir">docs/</span> <span class="comment">── this guide</span>
+  </div>
+
+  <!-- BUILD sections -->
+  <h2>Build — Sections 01–09</h2>
+  <p>Build the app from scratch, file by file. Each section covers one layer of the stack with the complete, verified code.</p>
+
+  <div class="card-grid">
+    <a href="01-setup.html" class="index-card">
+      <div class="card-icon">🏗️</div>
+      <div class="card-num">Section 01</div>
+      <div class="card-title">Architecture &amp; Setup</div>
+      <div class="card-desc">Tool decisions, folder structure, requirements.txt, Procfile, .env.example, config.js.</div>
+    </a>
+    <a href="02-backend-core.html" class="index-card">
+      <div class="card-icon">🗄️</div>
+      <div class="card-num">Section 02</div>
+      <div class="card-title">Database &amp; Models</div>
+      <div class="card-desc">SQLAlchemy engine with SQLite↔PostgreSQL env switch, ORM models, Pydantic schemas.</div>
+    </a>
+    <a href="03-auth.html" class="index-card">
+      <div class="card-icon">🔐</div>
+      <div class="card-num">Section 03</div>
+      <div class="card-title">Auth &amp; Utilities</div>
+      <div class="card-desc">JWT auth, bcrypt password hashing, PDF text extraction, .docx cover letter generation.</div>
+    </a>
+    <a href="04-agents.html" class="index-card">
+      <div class="card-icon">🤖</div>
+      <div class="card-num">Section 04</div>
+      <div class="card-title">Multi-Agent Pipeline</div>
+      <div class="card-desc">4 LLM agents: fit analysis → resume + cover letter + interview prep in parallel. Full orchestrator.py.</div>
+    </a>
+    <a href="05-routers.html" class="index-card">
+      <div class="card-icon">🔌</div>
+      <div class="card-num">Section 05</div>
+      <div class="card-title">API Routers</div>
+      <div class="card-desc">11 FastAPI endpoints: auth, CRUD, generate kit, download cover letter + resume. Env-var CORS.</div>
+    </a>
+    <a href="06-frontend-css.html" class="index-card">
+      <div class="card-icon">🎨</div>
+      <div class="card-num">Section 06</div>
+      <div class="card-title">Frontend CSS</div>
+      <div class="card-desc">Complete design system: dark theme tokens, layout, wizard, progress steps, score ring, diff view.</div>
+    </a>
+    <a href="07-frontend-js.html" class="index-card">
+      <div class="card-icon">⚡</div>
+      <div class="card-num">Section 07</div>
+      <div class="card-title">Frontend JavaScript</div>
+      <div class="card-desc">config.js (env-aware URL), api.js (auth state, HTTP methods, getBlob, toast, helpers).</div>
+    </a>
+    <a href="08-frontend-pages.html" class="index-card">
+      <div class="card-icon">📄</div>
+      <div class="card-num">Section 08</div>
+      <div class="card-title">HTML Pages</div>
+      <div class="card-desc">All 4 pages: login, dashboard, new-application wizard, application 4-tab results view.</div>
+    </a>
+    <a href="09-running.html" class="index-card">
+      <div class="card-icon">▶️</div>
+      <div class="card-num">Section 09</div>
+      <div class="card-title">Running &amp; Debug</div>
+      <div class="card-desc">Start both servers, run the full flow end-to-end, 15-error troubleshooting table.</div>
+    </a>
+  </div>
+
+  <!-- FIXES sections -->
+  <div class="section-group">Fixes Applied</div>
+  <p>Runtime bugs found during testing and features that were missing from the initial build — all already applied to the source files.</p>
+
+  <div class="card-grid">
+    <a href="10-bugs-fixed.html" class="index-card">
+      <div class="card-icon">🐛</div>
+      <div class="card-num">Section 10</div>
+      <div class="card-title">Bugs Fixed</div>
+      <div class="card-desc">6 runtime crashes: missing getBlob, wrong endpoint URLs, wrong section names, unused import.</div>
+    </a>
+    <a href="11-features-added.html" class="index-card">
+      <div class="card-icon">✨</div>
+      <div class="card-num">Section 11</div>
+      <div class="card-title">Features Added</div>
+      <div class="card-desc">Generate Kit button, Fit Analysis regenerate button, skills + keywords display in Fit tab.</div>
+    </a>
+  </div>
+
+  <!-- SHIP IT sections -->
+  <div class="section-group">Ship It</div>
+  <p>Deploy to the cloud, record the demo video, and build the presentation slides.</p>
+
+  <div class="card-grid">
+    <a href="12-deployment.html" class="index-card">
+      <div class="card-icon">🚀</div>
+      <div class="card-num">Section 12</div>
+      <div class="card-title">Cloud Deployment</div>
+      <div class="card-desc">Render backend + PostgreSQL, Vercel frontend, env vars, Alembic migration, CORS lockdown.</div>
+    </a>
+    <a href="13-video-script.html" class="index-card">
+      <div class="card-icon">🎬</div>
+      <div class="card-num">Section 13</div>
+      <div class="card-title">Video Script</div>
+      <div class="card-desc">Word-for-word 3–5 min demo script with timestamps, on-screen action cues, and recording tips.</div>
+    </a>
+    <a href="14-slides.html" class="index-card">
+      <div class="card-icon">📊</div>
+      <div class="card-num">Section 14</div>
+      <div class="card-title">Slide Deck Outline</div>
+      <div class="card-desc">15-slide PPT outline with visual descriptions, project metrics, design tokens, and Gamma AI prompt.</div>
+    </a>
+  </div>
+
+  <div class="page-nav">
+    <a href="01-setup.html" class="nav-card next">
+      <span class="nav-dir">→ Start Here</span>
+      <span>01 · Architecture &amp; Setup</span>
+    </a>
+  </div>
+</main>
+</body>
+</html>

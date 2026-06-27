@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard — Job Application Co-Pilot</title>
   <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body class="page-wrapper">
 
-<!-- ── Navbar ── -->
 <nav class="navbar">
   <a href="dashboard.html" class="navbar-brand">
-    <div class="logo-icon">🚀</div>Co-Pilot
+    <div class="logo-icon"><i data-lucide="zap"></i></div>Co-Pilot
   </a>
   <div class="navbar-right">
     <span class="navbar-user" id="user-name-display"></span>
@@ -21,38 +22,38 @@
 
 <main class="container" style="flex:1;">
 
-  <!-- ── Page heading + New Application CTA ── -->
-  <div style="padding:32px 0 24px; display:flex; align-items:center;
-              justify-content:space-between; flex-wrap:wrap; gap:16px;">
+  <div class="page-header">
     <div>
-      <h1 style="font-size:2rem; font-weight:700;">My Applications</h1>
+      <h1>My Applications</h1>
       <p>Track your job application pipeline</p>
     </div>
-    <a href="new-application.html" class="btn btn-primary btn-lg">+ New Application</a>
+    <a href="new-application.html" class="btn btn-primary btn-lg">
+      <i data-lucide="plus"></i> New Application
+    </a>
   </div>
 
-  <!-- ── Stats row ── -->
+  <!-- Stats row -->
   <div class="dash-stats">
-    <div class="stat-card">
+    <div class="stat-card stat-card-total">
       <div class="stat-value" id="stat-total">—</div>
       <div class="stat-label">Total</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card-applied">
       <div class="stat-value" id="stat-applied">—</div>
       <div class="stat-label">Applied</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card-interviewing">
       <div class="stat-value" id="stat-interviewing">—</div>
       <div class="stat-label">Interviewing</div>
     </div>
-    <div class="stat-card">
+    <div class="stat-card stat-card-offers">
       <div class="stat-value" id="stat-offers">—</div>
       <div class="stat-label">Offers</div>
     </div>
   </div>
 
-  <!-- ── Filter bar ── -->
-  <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+  <!-- Filter bar -->
+  <div class="filter-bar">
     <button class="filter-btn active" data-filter="all">All</button>
     <button class="filter-btn" data-filter="not_yet">Not Applied</button>
     <button class="filter-btn" data-filter="applied">Applied</button>
@@ -61,17 +62,17 @@
     <button class="filter-btn" data-filter="offer">Offers</button>
   </div>
 
-  <!-- ── Empty state ── -->
+  <!-- Empty state -->
   <div class="empty-state hidden" id="empty-state">
-    <div style="font-size:4rem; opacity:0.4;">📋</div>
+    <div class="empty-state-icon"><i data-lucide="clipboard-list"></i></div>
     <h3>No applications yet</h3>
     <p>Create your first application to get started</p>
-    <a href="new-application.html" class="btn btn-primary" style="margin-top:16px;">
-      + New Application
+    <a href="new-application.html" class="btn btn-primary" style="margin-top:20px;">
+      <i data-lucide="plus"></i> New Application
     </a>
   </div>
 
-  <!-- ── Applications grid (populated by JS) ── -->
+  <!-- Applications grid (populated by JS) -->
   <div class="applications-grid" id="applications-grid"></div>
 
 </main>
@@ -79,14 +80,12 @@
 <script type="module">
   import { api, auth, requireAuth, toast, formatDate } from './js/api.js';
 
-  requireAuth();   // redirect to index.html if no token
+  requireAuth();
 
-  // Display user name in navbar
   const user = auth.getUser();
   if (user) document.getElementById('user-name-display').textContent =
     user.full_name || user.email;
 
-  // Logout
   document.getElementById('logout-btn').addEventListener('click', () => {
     auth.clear();
     window.location.href = 'index.html';
@@ -105,7 +104,6 @@
   async function loadApps() {
     try {
       allApps = await api.get('/applications/');
-      // Compute stats from cached data — no extra requests
       document.getElementById('stat-total').textContent       = allApps.length;
       document.getElementById('stat-applied').textContent     = allApps.filter(a => a.status === 'applied').length;
       document.getElementById('stat-interviewing').textContent= allApps.filter(a => a.status === 'interviewed').length;
@@ -127,35 +125,39 @@
     if (!filtered.length) {
       grid.innerHTML = '';
       empty.classList.remove('hidden');
+      lucide.createIcons();
       return;
     }
     empty.classList.add('hidden');
 
     grid.innerHTML = filtered.map(app => `
       <div class="app-card" onclick="location.href='application.html?id=${app.id}'">
-        <div style="display:flex; align-items:flex-start; gap:14px; justify-content:space-between;">
-          <div style="display:flex; align-items:flex-start; gap:14px; flex:1;">
+        <div class="app-card-top">
+          <div class="app-card-meta">
             <div class="app-company-logo">${(app.company || '?')[0].toUpperCase()}</div>
-            <div>
-              <div style="font-size:1rem; font-weight:600; color:var(--color-text);">${app.job_title}</div>
-              <div style="font-size:0.875rem; color:var(--color-text-muted);">${app.company}</div>
+            <div class="app-card-info">
+              <div class="app-card-title">${app.job_title}</div>
+              <div class="app-card-company">${app.company}</div>
             </div>
           </div>
           <span class="badge badge-${app.status}">
             ${STATUS_LABELS[app.status] || app.status}
           </span>
         </div>
-        <div style="display:flex; justify-content:space-between; padding-top:12px;
-                    border-top:1px solid var(--color-border); font-size:0.78rem;
-                    color:var(--color-text-muted); margin-top:12px;">
+        <div class="app-card-footer">
           <span>${formatDate(app.created_at)}</span>
-          <span>${app.draft ? '● AI kit ready' : '○ No kit yet'}</span>
+          <span class="kit-badge ${app.draft ? 'kit-badge-ready' : 'kit-badge-pending'}">
+            ${app.draft
+              ? '<i data-lucide="check-circle"></i> Kit ready'
+              : '<i data-lucide="clock"></i> No kit yet'}
+          </span>
         </div>
       </div>
     `).join('');
+
+    lucide.createIcons();
   }
 
-  // Wire up filter buttons
   document.querySelectorAll('.filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -165,6 +167,7 @@
     });
   });
 
+  lucide.createIcons();
   loadApps();
 </script>
 </body>

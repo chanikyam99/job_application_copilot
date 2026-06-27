@@ -5,115 +5,128 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>New Application — Job Application Co-Pilot</title>
   <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body class="page-wrapper">
 
 <nav class="navbar">
-  <a href="dashboard.html" class="navbar-brand"><div class="logo-icon">🚀</div>Co-Pilot</a>
+  <a href="dashboard.html" class="navbar-brand">
+    <div class="logo-icon"><i data-lucide="zap"></i></div>Co-Pilot
+  </a>
   <div class="navbar-right">
-    <a href="dashboard.html" class="btn btn-secondary btn-sm">← Back</a>
+    <a href="dashboard.html" class="btn btn-secondary btn-sm">
+      <i data-lucide="arrow-left"></i> Back
+    </a>
   </div>
 </nav>
 
 <main class="container" style="flex:1; display:flex; align-items:center; justify-content:center; padding:40px 16px;">
   <div class="wizard-card">
 
-    <!-- ── Step indicators ── -->
+    <!-- Step indicators (horizontal stepper) -->
     <div class="wizard-steps">
       <div class="wizard-step active" id="step-ind-1">
-        <div class="step-circle">1</div><span>Resume</span>
+        <div class="step-circle">1</div>
+        <span class="step-label">Resume</span>
       </div>
       <div class="wizard-step-line"></div>
       <div class="wizard-step" id="step-ind-2">
-        <div class="step-circle">2</div><span>Job Details</span>
+        <div class="step-circle">2</div>
+        <span class="step-label">Job Details</span>
       </div>
       <div class="wizard-step-line"></div>
       <div class="wizard-step" id="step-ind-3">
-        <div class="step-circle">3</div><span>Generating</span>
+        <div class="step-circle">3</div>
+        <span class="step-label">Generating</span>
       </div>
     </div>
 
-    <!-- ═══ STEP 1: Resume Upload ═════════════════════════════════════ -->
-    <div id="step-1">
-      <h2 style="margin-top:32px;">Upload Your Resume</h2>
-      <p style="margin-bottom:24px;">PDF only. Text-based PDFs work best — scanned images cannot be parsed.</p>
+    <!-- STEP 1: Resume Upload -->
+    <div id="step-1" class="wizard-step-content">
+      <h2>Upload Your Resume</h2>
+      <p>PDF only. Text-based PDFs work best — scanned images cannot be parsed.</p>
 
       <div class="drop-zone" id="drop-zone">
-        <div class="drop-icon">📄</div>
+        <div class="drop-icon"><i data-lucide="upload-cloud"></i></div>
         <p class="drop-text">Drag &amp; drop your PDF here</p>
-        <p style="font-size:0.85rem; color:var(--color-text-muted);">or</p>
-        <label class="btn btn-secondary" style="cursor:pointer;">
+        <p class="drop-hint">or</p>
+        <label class="btn btn-secondary" style="cursor:pointer; margin-top:8px;">
           Browse Files
           <input type="file" id="file-input" accept=".pdf" style="display:none;">
         </label>
-        <div id="file-name" style="margin-top:16px; font-size:0.875rem; color:var(--color-text-muted);"></div>
       </div>
 
+      <div id="file-name"></div>
+
       <div style="display:flex; justify-content:flex-end; margin-top:24px;">
-        <button class="btn btn-primary" id="step1-next" disabled>Next: Job Details →</button>
+        <button class="btn btn-primary" id="step1-next" disabled>
+          Next: Job Details <i data-lucide="arrow-right"></i>
+        </button>
       </div>
     </div>
 
-    <!-- ═══ STEP 2: Job Details ════════════════════════════════════════ -->
-    <div id="step-2" class="hidden">
-      <h2 style="margin-top:32px;">Job Details</h2>
-      <p style="margin-bottom:24px;">Tell the agents what role you're targeting.</p>
+    <!-- STEP 2: Job Details -->
+    <div id="step-2" class="wizard-step-content hidden">
+      <h2>Job Details</h2>
+      <p>Tell the agents what role you're targeting.</p>
 
       <form id="job-form">
         <div class="form-group">
-          <label for="job-title">Job Title <span style="color:#ef4444;">*</span></label>
+          <label for="job-title">Job Title <span style="color:var(--color-danger);">*</span></label>
           <input type="text" id="job-title" placeholder="e.g. Senior Data Analyst" required>
         </div>
         <div class="form-group">
-          <label for="company">Company <span style="color:#ef4444;">*</span></label>
+          <label for="company">Company <span style="color:var(--color-danger);">*</span></label>
           <input type="text" id="company" placeholder="e.g. Stripe" required>
         </div>
         <div class="form-group">
           <label for="job-description">
-            Job Description <span style="color:#ef4444;">*</span>
+            Job Description <span style="color:var(--color-danger);">*</span>
             <span class="label-hint">Paste the full JD from LinkedIn or the careers page</span>
           </label>
           <textarea id="job-description" rows="10"
-                    placeholder="Paste the full job description here..." required></textarea>
+                    placeholder="Paste the full job description here…" required></textarea>
         </div>
         <div id="job-form-error" class="form-error" style="margin-bottom:12px;"></div>
         <div style="display:flex; gap:12px; justify-content:space-between;">
-          <button type="button" class="btn btn-secondary" id="step2-back">← Back</button>
-          <button type="submit"  class="btn btn-primary"  id="generate-btn">
-            Generate My Kit ✨
+          <button type="button" class="btn btn-secondary" id="step2-back">
+            <i data-lucide="arrow-left"></i> Back
+          </button>
+          <button type="submit" class="btn btn-primary" id="generate-btn">
+            <i data-lucide="sparkles"></i> Generate My Kit
           </button>
         </div>
       </form>
     </div>
 
-    <!-- ═══ STEP 3: Generating ═════════════════════════════════════════ -->
-    <div id="step-3" class="hidden">
-      <div style="text-align:center; padding:40px 0;">
-        <div style="font-size:3.5rem; margin-bottom:20px;">🤖</div>
-        <h2 style="margin-bottom:8px; border:none; padding:0;">Running AI Agents</h2>
-        <p style="margin-bottom:36px;">This takes 15–30 seconds. Please don't close the tab.</p>
+    <!-- STEP 3: Generating -->
+    <div id="step-3" class="wizard-step-content hidden">
+      <div style="text-align:center; padding:40px 0 24px;">
+        <h2 style="margin-top:0; margin-bottom:8px;">Running AI Agents</h2>
+        <p>This takes 15–30 seconds. Please don't close the tab.</p>
+      </div>
 
-        <div class="progress-steps" id="progress-steps">
-          <div class="progress-step" id="prog-parse">
-            <span class="prog-icon">⏳</span>
-            <span>Parsing resume &amp; job description</span>
-          </div>
-          <div class="progress-step" id="prog-fit">
-            <span class="prog-icon">⏳</span>
-            <span>Agent 1 · Fit Analysis</span>
-          </div>
-          <div class="progress-step" id="prog-resume">
-            <span class="prog-icon">⏳</span>
-            <span>Agent 2 · Resume Rewrite</span>
-          </div>
-          <div class="progress-step" id="prog-cover">
-            <span class="prog-icon">⏳</span>
-            <span>Agent 3 · Cover Letter</span>
-          </div>
-          <div class="progress-step" id="prog-interview">
-            <span class="prog-icon">⏳</span>
-            <span>Agent 4 · Interview Prep</span>
-          </div>
+      <div class="progress-steps" id="progress-steps">
+        <div class="progress-step" id="prog-parse">
+          <span class="prog-icon"><i data-lucide="file-search"></i></span>
+          <span>Parsing resume &amp; job description</span>
+        </div>
+        <div class="progress-step" id="prog-fit">
+          <span class="prog-icon"><i data-lucide="target"></i></span>
+          <span>Agent 1 · Fit Analysis</span>
+        </div>
+        <div class="progress-step" id="prog-resume">
+          <span class="prog-icon"><i data-lucide="file-text"></i></span>
+          <span>Agent 2 · Resume Rewrite</span>
+        </div>
+        <div class="progress-step" id="prog-cover">
+          <span class="prog-icon"><i data-lucide="mail"></i></span>
+          <span>Agent 3 · Cover Letter</span>
+        </div>
+        <div class="progress-step" id="prog-interview">
+          <span class="prog-icon"><i data-lucide="mic"></i></span>
+          <span>Agent 4 · Interview Prep</span>
         </div>
       </div>
     </div>
@@ -127,11 +140,13 @@
 
   let selectedFile = null;
 
-  // ── Step navigation helpers ────────────────────────────────────────────────
+  // ── Step navigation ────────────────────────────────────────────────────────
   function goToStep(n) {
     [1, 2, 3].forEach(i => {
       document.getElementById(`step-${i}`).classList.toggle('hidden', i !== n);
-      document.getElementById(`step-ind-${i}`).classList.toggle('active', i === n);
+      const ind = document.getElementById(`step-ind-${i}`);
+      ind.classList.toggle('active', i === n);
+      ind.classList.toggle('done', i < n);
     });
   }
 
@@ -147,8 +162,14 @@
       return;
     }
     selectedFile = file;
-    fileNameEl.textContent = `✓ ${file.name}`;
+    fileNameEl.innerHTML = `
+      <div class="file-selected-row">
+        <i data-lucide="check-circle"></i>
+        <span>${file.name}</span>
+      </div>
+    `;
     nextBtn.disabled = false;
+    lucide.createIcons();
   }
 
   dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
@@ -161,10 +182,10 @@
   fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
   nextBtn.addEventListener('click', () => goToStep(2));
 
-  // ── Step 2: Back button ────────────────────────────────────────────────────
+  // ── Step 2: Back ───────────────────────────────────────────────────────────
   document.getElementById('step2-back').addEventListener('click', () => goToStep(1));
 
-  // ── Step 2: Submit → create application + generate kit ────────────────────
+  // ── Step 2: Submit ─────────────────────────────────────────────────────────
   document.getElementById('job-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const errorEl = document.getElementById('job-form-error');
@@ -172,49 +193,60 @@
 
     const btn = document.getElementById('generate-btn');
     btn.disabled  = true;
-    btn.innerHTML = '<span class="spinner"></span> Uploading...';
+    btn.innerHTML = '<span class="spinner"></span> Uploading…';
     goToStep(3);
 
-    // Animate progress indicators sequentially while waiting
-    const steps  = ['prog-parse', 'prog-fit', 'prog-resume', 'prog-cover', 'prog-interview'];
-    let stepIndex = 0;
-    const ticker  = setInterval(() => {
-      if (stepIndex > 0)
-        document.getElementById(steps[stepIndex - 1]).querySelector('.prog-icon').textContent = '✅';
-      if (stepIndex < steps.length)
-        document.getElementById(steps[stepIndex]).querySelector('.prog-icon').textContent = '🔄';
-      stepIndex++;
-      if (stepIndex >= steps.length) clearInterval(ticker);
+    // Animate progress steps sequentially
+    const stepIds = ['prog-parse', 'prog-fit', 'prog-resume', 'prog-cover', 'prog-interview'];
+    let idx = 0;
+    const ticker = setInterval(() => {
+      if (idx > 0) {
+        const prev = document.getElementById(stepIds[idx - 1]);
+        prev.classList.remove('active');
+        prev.classList.add('done');
+        prev.querySelector('.prog-icon').innerHTML = '<i data-lucide="check"></i>';
+        lucide.createIcons();
+      }
+      if (idx < stepIds.length) {
+        const cur = document.getElementById(stepIds[idx]);
+        cur.classList.add('active');
+        cur.querySelector('.prog-icon').innerHTML = '<span class="prog-spinner"></span>';
+      }
+      idx++;
+      if (idx >= stepIds.length) clearInterval(ticker);
     }, 4000);
 
     try {
-      // 1) Upload resume + job details as multipart form
       const form = new FormData();
       form.append('resume_file', selectedFile);
       form.append('job_title',   document.getElementById('job-title').value);
       form.append('company',     document.getElementById('company').value);
-      form.append('jd_text', document.getElementById('job-description').value);
+      form.append('jd_text',     document.getElementById('job-description').value);
 
       const app = await api.postForm('/applications/', form);
-
-      // 2) Trigger the AI pipeline (takes 15-30 s)
       await api.post(`/applications/${app.id}/generate`, {});
 
       clearInterval(ticker);
-      steps.forEach(id =>
-        document.getElementById(id).querySelector('.prog-icon').textContent = '✅'
-      );
+      stepIds.forEach(id => {
+        const el = document.getElementById(id);
+        el.classList.remove('active');
+        el.classList.add('done');
+        el.querySelector('.prog-icon').innerHTML = '<i data-lucide="check"></i>';
+      });
+      lucide.createIcons();
 
-      // 3) Navigate to results
       window.location.href = `application.html?id=${app.id}`;
     } catch (err) {
       clearInterval(ticker);
       toast(err.message, 'error');
       goToStep(2);
       btn.disabled  = false;
-      btn.textContent = 'Generate My Kit ✨';
+      btn.innerHTML = '<i data-lucide="sparkles"></i> Generate My Kit';
+      lucide.createIcons();
     }
   });
+
+  lucide.createIcons();
 </script>
 </body>
 </html>

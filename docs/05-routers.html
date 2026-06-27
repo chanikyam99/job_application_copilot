@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>05 · API Routers — Co-Pilot Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Build</div>
+  <nav>
+    <a href="01-setup.html">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html">02 · Database &amp; Models</a>
+    <a href="03-auth.html">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html" class="active">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+  <div class="nav-section">Fixes Applied</div>
+  <nav>
+    <a href="10-bugs-fixed.html">10 · Bugs Fixed</a>
+    <a href="11-features-added.html">11 · Features Added</a>
+  </nav>
+  <div class="nav-section">Ship It</div>
+  <nav>
+    <a href="12-deployment.html">12 · Cloud Deployment</a>
+    <a href="13-video-script.html">13 · Video Script</a>
+    <a href="14-slides.html">14 · Slide Deck Outline</a>
+  </nav>
+  <div class="nav-section">───</div>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 05</div>
+    <h1 class="page-title">API Routers</h1>
+    <p class="page-subtitle">All FastAPI endpoints — authentication, application CRUD, AI generation, and file download.</p>
+  </div>
+
+  <!-- Endpoint table -->
+  <h2>All Endpoints at a Glance</h2>
+  <table>
+    <thead><tr><th>Method</th><th>Path</th><th>Description</th><th>Auth?</th></tr></thead>
+    <tbody>
+      <tr><td>POST</td><td>/auth/signup</td><td>Create a new account</td><td>No</td></tr>
+      <tr><td>POST</td><td>/auth/login</td><td>Login, returns JWT token</td><td>No</td></tr>
+      <tr><td>GET</td><td>/auth/me</td><td>Get current user profile</td><td>Yes</td></tr>
+      <tr><td>GET</td><td>/applications/</td><td>List all applications</td><td>Yes</td></tr>
+      <tr><td>POST</td><td>/applications/</td><td>Create application (upload PDF)</td><td>Yes</td></tr>
+      <tr><td>GET</td><td>/applications/{id}</td><td>Get single application</td><td>Yes</td></tr>
+      <tr><td>POST</td><td>/applications/{id}/generate</td><td>Run 4-agent pipeline</td><td>Yes</td></tr>
+      <tr><td>PATCH</td><td>/applications/{id}/status</td><td>Update status</td><td>Yes</td></tr>
+      <tr><td>POST</td><td>/applications/{id}/regenerate/{section}</td><td>Re-run one agent</td><td>Yes</td></tr>
+      <tr><td>GET</td><td>/applications/{id}/download/cover-letter</td><td>Download .docx</td><td>Yes</td></tr>
+      <tr><td>GET</td><td>/applications/{id}/download/resume</td><td>Returns rewritten resume as .txt file download</td><td>Yes</td></tr>
+      <tr><td>DELETE</td><td>/applications/{id}</td><td>Delete application</td><td>Yes</td></tr>
+    </tbody>
+  </table>
+
+  <!-- auth_router.py -->
+  <h2><span class="step-num">1</span> routers/auth_router.py</h2>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/routers/auth_router.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from database import get_db
+import models
+import schemas
+import auth
+
+router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+@router.post("/signup", response_model=schemas.UserOut, status_code=201)
+def signup(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+    """
+    Creates a new user.
+    - Checks for duplicate email (HTTP 400 if taken)
+    - Hashes password with bcrypt
+    - Returns user info — NOT the password hash
+    """
+    existing = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user = models.User(
+        email=user_data.email,
+        hashed_password=auth.get_password_hash(user_data.password),
+        full_name=user_data.full_name,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)  # Refresh to get DB-generated id and created_at
+    return user
+
+
+@router.post("/login", response_model=schemas.Token)
+def login(user_data: schemas.UserLogin, db: Session = Depends(get_db)):
+    """
+    Authenticates user and returns JWT.
+    Returns 401 for BOTH wrong email AND wrong password —
+    never reveal which one was wrong (prevents user enumeration attacks).
+    """
+    user = db.query(models.User).filter(models.User.email == user_data.email).first()
+    if not user or not auth.verify_password(user_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+
+    token = auth.create_access_token(data={"sub": user.email})
+    return {"access_token": token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=schemas.UserOut)
+def get_me(current_user: models.User = Depends(auth.get_current_user)):
+    """Returns the logged-in user's profile. Used by frontend to show the user's name."""
+    return current_user</code></pre>
+  </div>
+
+  <!-- applications_router.py -->
+  <h2><span class="step-num">2</span> routers/applications_router.py</h2>
+
+  <div class="why-box">
+    <div class="why-label">WHY separate POST /applications/ and POST /applications/{id}/generate?</div>
+    <p>Creating an application and running the AI pipeline are separate steps. This lets the user verify what was parsed from the PDF before committing to generation. It also means if the Groq API is slow or fails, the application record is already saved — you don't lose the form data. The "Regenerate" button reuses the saved resume text without re-uploading the PDF.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/routers/applications_router.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import Response
+from sqlalchemy.orm import Session
+from typing import List
+import json
+
+from database import get_db
+import models
+import schemas
+import auth
+from utils.pdf_parser import extract_text_from_pdf
+from utils.docx_generator import generate_cover_letter_docx
+from agents.orchestrator import (
+    run_pipeline, run_fit_analyst, run_resume_writer,
+    run_cover_letter_writer, run_interviewer
+)
+
+router = APIRouter(prefix="/applications", tags=["Applications"])
+
+
+@router.get("/", response_model=List[schemas.ApplicationOut])
+def list_applications(
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns all applications for the current user, newest first.
+    user_id filter ensures users can only see their OWN applications.
+    This is a critical security boundary — never omit this filter.
+    """
+    return (
+        db.query(models.Application)
+        .filter(models.Application.user_id == current_user.id)
+        .order_by(models.Application.created_at.desc())
+        .all()
+    )
+
+
+@router.post("/", response_model=schemas.ApplicationOut, status_code=201)
+async def create_application(
+    job_title:   str = Form(...),
+    company:     str = Form(...),
+    jd_text:     str = Form(...),
+    resume_file: UploadFile = File(...),
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Creates application record (without generating AI artifacts).
+    Uses Form() + File() instead of JSON body because file uploads
+    require multipart/form-data encoding, not application/json.
+    """
+    if not resume_file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    file_bytes = await resume_file.read()
+    if len(file_bytes) &gt; 10 * 1024 * 1024:  # 10MB limit
+        raise HTTPException(status_code=400, detail="File too large (max 10MB)")
+
+    resume_text = extract_text_from_pdf(file_bytes)
+    if not resume_text.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Could not extract text from this PDF. Try a text-based PDF (not a scanned image)."
+        )
+
+    application = models.Application(
+        user_id=current_user.id,
+        job_title=job_title.strip(),
+        company=company.strip(),
+        jd_text=jd_text.strip(),
+        original_resume=resume_text,
+    )
+    db.add(application)
+    db.commit()
+    db.refresh(application)
+    return application
+
+
+@router.post("/{app_id}/generate", response_model=schemas.ApplicationOut)
+async def generate_artifacts(
+    app_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Runs the 4-agent pipeline and saves all artifacts.
+    This endpoint takes ~15–30 seconds.
+    """
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    results = await run_pipeline(
+        resume_text=application.original_resume,
+        jd_text=application.jd_text,
+        job_title=application.job_title,
+        company=application.company,
+    )
+
+    # Upsert draft — create if doesn't exist, update if it does
+    draft = application.draft
+    if not draft:
+        draft = models.Draft(application_id=application.id)
+        db.add(draft)
+
+    draft.fit_analysis   = json.dumps(results["fit_analysis"])
+    draft.resume_rewrite = json.dumps({
+        "text":    results["resume_rewrite"],
+        "changes": results["resume_changes"]
+    })
+    draft.cover_letter = results["cover_letter"]
+    draft.interview_qa = json.dumps(results["interview_qa"])
+
+    db.commit()
+    db.refresh(application)
+    return application
+
+
+@router.get("/{app_id}", response_model=schemas.ApplicationOut)
+def get_application(
+    app_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+    return application
+
+
+@router.patch("/{app_id}/status", response_model=schemas.ApplicationOut)
+def update_status(
+    app_id: int,
+    update: schemas.ApplicationUpdate,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Updates application status and/or metadata."""
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    if update.status    is not None: application.status    = update.status
+    if update.job_title is not None: application.job_title = update.job_title
+    if update.company   is not None: application.company   = update.company
+
+    db.commit()
+    db.refresh(application)
+    return application
+
+
+@router.post("/{app_id}/regenerate/{section}", response_model=schemas.ApplicationOut)
+async def regenerate_section(
+    app_id:  int,
+    section: str,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Regenerates a single section without re-running the full pipeline.
+    Valid sections: fit_analysis | resume | cover_letter | interview
+
+    WHY this endpoint? LLM output is non-deterministic. If the generated
+    cover letter sounds generic, the user can re-run just that agent (~5s)
+    instead of waiting for the full 30-second pipeline.
+    """
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    draft = application.draft
+    if not draft:
+        draft = models.Draft(application_id=application.id)
+        db.add(draft)
+        db.flush()
+
+    fit_analysis = json.loads(draft.fit_analysis) if draft.fit_analysis else {}
+
+    if section == "fit_analysis":
+        result = await run_fit_analyst(application.original_resume, application.jd_text)
+        draft.fit_analysis = json.dumps(result)
+
+    elif section == "resume":
+        if not fit_analysis:
+            fit_analysis = await run_fit_analyst(application.original_resume, application.jd_text)
+            draft.fit_analysis = json.dumps(fit_analysis)
+        result = await run_resume_writer(application.original_resume, application.jd_text, fit_analysis)
+        draft.resume_rewrite = json.dumps({"text": result["rewritten_resume"], "changes": result["changes"]})
+
+    elif section == "cover_letter":
+        if not fit_analysis:
+            fit_analysis = await run_fit_analyst(application.original_resume, application.jd_text)
+            draft.fit_analysis = json.dumps(fit_analysis)
+        result = await run_cover_letter_writer(
+            application.original_resume, application.jd_text,
+            fit_analysis, application.job_title, application.company
+        )
+        draft.cover_letter = result
+
+    elif section == "interview":
+        if not fit_analysis:
+            fit_analysis = await run_fit_analyst(application.original_resume, application.jd_text)
+            draft.fit_analysis = json.dumps(fit_analysis)
+        result = await run_interviewer(application.original_resume, application.jd_text, fit_analysis)
+        draft.interview_qa = json.dumps(result)
+
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid section '{section}'. Use: fit_analysis, resume, cover_letter, interview"
+        )
+
+    db.commit()
+    db.refresh(application)
+    return application
+
+
+@router.get("/{app_id}/download/cover-letter")
+def download_cover_letter(
+    app_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Returns the cover letter as a downloadable .docx file."""
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application or not application.draft or not application.draft.cover_letter:
+        raise HTTPException(status_code=404, detail="Cover letter not generated yet")
+
+    docx_bytes = generate_cover_letter_docx(
+        application.draft.cover_letter,
+        application.job_title,
+        application.company
+    )
+
+    # Sanitize filename — remove special chars that break Content-Disposition
+    safe = lambda s: "".join(c for c in s if c.isalnum() or c in " _-")[:30]
+    filename = f"cover_{safe(application.company)}_{safe(application.job_title)}.docx".replace(" ", "_")
+
+    return Response(
+        content=docx_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.get("/{app_id}/download/resume")
+def download_resume(
+    app_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Returns the rewritten resume as a downloadable .txt file.
+    Plain text is the safest format — no PDF generation library needed.
+    Users can paste it into any word processor and format as needed."""
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application or not application.draft or not application.draft.resume_rewrite:
+        raise HTTPException(status_code=404, detail="Resume rewrite not generated yet")
+
+    rewrite_data = json.loads(application.draft.resume_rewrite)
+    resume_text  = rewrite_data.get("text", application.original_resume)
+
+    safe = lambda s: "".join(c for c in s if c.isalnum() or c in " _-")[:30]
+    filename = f"resume_{safe(application.company)}_{safe(application.job_title)}.txt".replace(" ", "_")
+
+    return Response(
+        content=resume_text.encode("utf-8"),
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.delete("/{app_id}", status_code=204)
+def delete_application(
+    app_id: int,
+    current_user: models.User = Depends(auth.get_current_user),
+    db: Session = Depends(get_db)
+):
+    application = db.query(models.Application).filter(
+        models.Application.id == app_id,
+        models.Application.user_id == current_user.id
+    ).first()
+
+    if not application:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    db.delete(application)
+    db.commit()</code></pre>
+  </div>
+
+  <!-- main.py -->
+  <h2><span class="step-num">3</span> main.py — The FastAPI App</h2>
+
+  <div class="why-box">
+    <div class="why-label">WHY CORSMiddleware with ALLOWED_ORIGINS env var?</div>
+    <p>Your frontend is at <code>http://localhost:3000</code> and your backend is at <code>http://localhost:8000</code>. The browser's Same-Origin Policy blocks <code>fetch()</code> requests between different origins by default. <code>CORSMiddleware</code> adds the correct response headers (<code>Access-Control-Allow-Origin</code>) to permit cross-origin requests.</p>
+    <p>The actual code reads the <code>ALLOWED_ORIGINS</code> environment variable rather than hard-coding <code>"*"</code>. In local dev the env var is absent, so it defaults to <code>"*"</code> (open). In production, set <code>ALLOWED_ORIGINS=https://your-app.vercel.app</code> on Render to lock down which frontend domains can call the API — any other origin will receive a CORS error from the browser before the request reaches your handlers.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">backend/main.py <span class="lang">python</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-python">import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from database import engine, Base
+import models  # noqa: F401 — import registers all ORM models with SQLAlchemy
+from routers import auth_router, applications_router
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="Job Application Co-Pilot API",
+    description="AI-powered multi-agent job application assistant",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
+
+# ALLOWED_ORIGINS env var: comma-separated list of frontend origins.
+# Example: "https://your-app.onrender.com,https://your-app.netlify.app"
+# Defaults to "*" for local dev — always set explicitly in production.
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins = [o.strip() for o in _raw_origins.split(",")] if _raw_origins != "*" else ["*"]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(auth_router.router)
+app.include_router(applications_router.router)
+
+
+@app.get("/", tags=["Health"])
+def root():
+    return {"status": "ok", "docs": "/docs"}</code></pre>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">Backend is complete</div>
+    <p>You now have all the backend files. Run it with: <code>uvicorn main:app --reload --port 8000</code> from the <code>backend/</code> folder with your venv activated. Visit <strong>http://localhost:8000/docs</strong> to see the Swagger UI and test every endpoint before touching the frontend.</p>
+  </div>
+
+  <div class="page-nav">
+    <a href="04-agents.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>Multi-Agent Pipeline</span>
+    </a>
+    <a href="06-frontend-css.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>Frontend CSS</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

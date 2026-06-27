@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>05 · Video Script — Fixes Guide</title>
+<link rel="stylesheet" href="styles.css">
+<style>
+  .script-block {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px 28px; margin: 20px 0 28px;
+    position: relative;
+  }
+  .script-timestamp {
+    display: inline-block; background: #dc2626; color: #fff;
+    font-size: 0.72rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 100px; margin-bottom: 12px; letter-spacing: 0.05em;
+  }
+  .script-action {
+    background: #eff6ff; border: 1px solid #bfdbfe;
+    border-radius: 7px; padding: 8px 14px; margin: 10px 0;
+    font-size: 0.82rem; color: #1e40af; font-style: italic;
+  }
+  .script-action::before { content: '🎬 '; }
+  .script-speech {
+    font-size: 0.97rem; line-height: 1.85; color: var(--text);
+    border-left: 3px solid var(--border); padding-left: 16px; margin: 14px 0 6px;
+  }
+  .script-speech blockquote { margin: 0; }
+
+  .timing-bar {
+    display: flex; gap: 8px; flex-wrap: wrap; margin: 20px 0 28px;
+  }
+  .timing-pill {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 16px; font-size: 0.82rem;
+  }
+  .timing-pill .ttime { font-weight: 700; color: #dc2626; }
+  .timing-pill .tlabel { color: var(--text-muted); }
+
+  .tip-box {
+    background: #fffbeb; border-left: 4px solid #f59e0b;
+    border-radius: 0 10px 10px 0; padding: 14px 20px; margin: 14px 0 22px;
+    font-size: 0.875rem; color: #78350f;
+  }
+  .tip-box strong { color: #78350f; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html">🏠 Overview</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="00-getting-started.html">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html">03 · Still To Do Manually</a>
+    <a href="04-deployment.html">04 · Cloud Deployment</a>
+    <a href="05-video-script.html" class="active">05 · Video Script</a>
+    <a href="06-slides.html">06 · Slide Deck Outline</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 05</div>
+    <h1 class="page-title">Demo Video Script</h1>
+    <p class="page-subtitle">A word-for-word script for the capstone demo video. Target: 3–5 minutes. Tone: confident, clear, professional.</p>
+  </div>
+
+  <!-- Timing overview -->
+  <h2>Run Sheet</h2>
+
+  <div class="timing-bar">
+    <div class="timing-pill"><span class="ttime">0:00–0:25</span><span class="tlabel">Hook &amp; Problem</span></div>
+    <div class="timing-pill"><span class="ttime">0:25–0:50</span><span class="tlabel">Introduce the App</span></div>
+    <div class="timing-pill"><span class="ttime">0:50–1:20</span><span class="tlabel">Sign In &amp; Dashboard</span></div>
+    <div class="timing-pill"><span class="ttime">1:20–2:00</span><span class="tlabel">New Application Wizard</span></div>
+    <div class="timing-pill"><span class="ttime">2:00–3:20</span><span class="tlabel">AI Kit Walkthrough (4 tabs)</span></div>
+    <div class="timing-pill"><span class="ttime">3:20–3:50</span><span class="tlabel">Deployment</span></div>
+    <div class="timing-pill"><span class="ttime">3:50–4:10</span><span class="tlabel">Close</span></div>
+  </div>
+
+  <!-- SEGMENT 1 -->
+  <h2>[0:00 – 0:25] Hook / Problem</h2>
+
+  <div class="script-block">
+    <span class="script-timestamp">0:00 – 0:25</span>
+    <div class="script-speech">
+      "Job hunting is exhausting. You spend hours tailoring your resume for every role, writing cover letters from scratch, and guessing what questions might come up in the interview — and most of the time, you don't even hear back.
+      <br><br>
+      What if you could go from a blank resume to a complete, customised application kit in under 30 seconds?
+      <br><br>
+      That's exactly what I built."
+    </div>
+  </div>
+
+  <!-- SEGMENT 2 -->
+  <h2>[0:25 – 0:50] Introduce the App</h2>
+
+  <div class="script-block">
+    <span class="script-timestamp">0:25 – 0:50</span>
+    <div class="script-action">Show the login page on screen</div>
+    <div class="script-speech">
+      "This is <strong>Job Application Co-Pilot</strong> — an AI-powered web app that takes your resume PDF and a job description, and runs four specialised AI agents in parallel to produce a complete application kit tailored to that specific role.
+      <br><br>
+      It's a full-stack application built with FastAPI on the backend, plain HTML and CSS on the frontend, and Groq's LLM API powering the agents. The backend is deployed on Render with a PostgreSQL database, and the frontend is hosted on Netlify — fully accessible from any browser."
+    </div>
+  </div>
+
+  <!-- SEGMENT 3 -->
+  <h2>[0:50 – 1:20] Sign In &amp; Dashboard</h2>
+
+  <div class="script-block">
+    <span class="script-timestamp">0:50 – 1:20</span>
+    <div class="script-action">Log in and show the dashboard</div>
+    <div class="script-speech">
+      "After signing in, you land on the dashboard. You can see all your applications at a glance — the status, whether the AI kit has been generated, and quick summary stats across your pipeline."
+    </div>
+    <div class="script-action">Point to the stat cards — Total, Applied, Interviewing, Offers</div>
+    <div class="script-speech">
+      "You can filter by status — not applied yet, applied, interviewing, rejected, or offer received — and update each application's status as you progress through the process."
+    </div>
+  </div>
+
+  <!-- SEGMENT 4 -->
+  <h2>[1:20 – 2:00] Create a New Application</h2>
+
+  <div class="script-block">
+    <span class="script-timestamp">1:20 – 2:00</span>
+    <div class="script-action">Click "+ New Application"</div>
+    <div class="script-speech">
+      "Creating a new application is a three-step wizard."
+    </div>
+    <div class="script-action">Step 1 — drop zone</div>
+    <div class="script-speech">
+      "First, upload your resume as a PDF."
+    </div>
+    <div class="script-action">Drag and drop or browse — show the file confirmed</div>
+    <div class="script-action">Step 2 — job details form</div>
+    <div class="script-speech">
+      "Then paste in the job title, company, and the full job description. The more detail you give it, the better the output."
+    </div>
+    <div class="script-action">Fill in the form</div>
+    <div class="script-action">Click "Generate My Kit" — show Step 3 progress screen</div>
+    <div class="script-speech">
+      "The agents run in parallel — fit analysis first, then resume rewrite, cover letter, and interview prep simultaneously. The whole pipeline takes around 15 to 30 seconds."
+    </div>
+  </div>
+
+  <!-- SEGMENT 5 -->
+  <h2>[2:00 – 3:20] AI Kit Walkthrough (4 tabs)</h2>
+
+  <div class="script-block">
+    <span class="script-timestamp">2:00 – 2:20 — Fit Analysis</span>
+    <div class="script-action">Navigate to the application — Fit Analysis tab opens</div>
+    <div class="script-speech">
+      "The Fit Analysis agent scores how well your resume matches this role — in this case [X]%. It breaks down which requirements you already have — shown in green — and which gaps you'd need to address, in red."
+    </div>
+    <div class="script-action">Point to the score ring and requirement pills</div>
+    <div class="script-speech">
+      "It also surfaces the key JD keywords and skills to emphasise — so you know exactly what language to mirror when talking to the recruiter."
+    </div>
+  </div>
+
+  <div class="script-block">
+    <span class="script-timestamp">2:20 – 2:40 — Resume Rewrite</span>
+    <div class="script-action">Click Resume tab</div>
+    <div class="script-speech">
+      "The Resume Rewrite agent takes your existing bullet points and rewrites them — injecting JD keywords, strengthening the impact language, and aligning phrasing with what the hiring team is looking for."
+    </div>
+    <div class="script-action">Show the diff view — red strikethrough on left, green rewritten on right</div>
+    <div class="script-speech">
+      "You get a side-by-side diff so you can see exactly what changed and why. Download it as a text file and paste it back into your CV."
+    </div>
+  </div>
+
+  <div class="script-block">
+    <span class="script-timestamp">2:40 – 2:55 — Cover Letter</span>
+    <div class="script-action">Click Cover Letter tab</div>
+    <div class="script-speech">
+      "The Cover Letter agent writes a full one-page letter, personalised to the company and role. You can download it as a .docx — ready to attach to the application."
+    </div>
+  </div>
+
+  <div class="script-block">
+    <span class="script-timestamp">2:55 – 3:20 — Interview Prep</span>
+    <div class="script-action">Click Interview Prep tab</div>
+    <div class="script-speech">
+      "Finally, the Interview Prep agent generates 10 targeted questions — behavioural, technical, and situational — drawn from your resume and the job description."
+    </div>
+    <div class="script-action">Open one accordion card</div>
+    <div class="script-speech">
+      "Each one comes with a sample answer and a tip on how to deliver it. Real preparation, not generic advice."
+    </div>
+  </div>
+
+  <!-- SEGMENT 6 -->
+  <h2>[3:20 – 3:50] Deployment</h2>
+
+  <div class="script-block">
+    <span class="script-timestamp">3:20 – 3:50</span>
+    <div class="script-speech">
+      "The entire application is deployed to the cloud. The FastAPI backend runs on Render as a web service connected to a managed PostgreSQL database. The frontend — four static HTML pages — is served from Netlify.
+      <br><br>
+      Environment variables handle secrets: the Groq API key, JWT secret, and the database URL. The backend auto-detects PostgreSQL in production and SQLite locally — so the developer experience stays frictionless."
+    </div>
+  </div>
+
+  <!-- SEGMENT 7 -->
+  <h2>[3:50 – 4:10] Close</h2>
+
+  <div class="script-block">
+    <span class="script-timestamp">3:50 – 4:10</span>
+    <div class="script-speech">
+      "Job Application Co-Pilot demonstrates a full-stack AI pipeline — multi-agent orchestration, JWT auth, file handling, PDF parsing, document generation, and cloud deployment — all in a single cohesive product.
+      <br><br>
+      The goal was simple: make applying for jobs feel less like a full-time job.
+      <br><br>
+      Thank you."
+    </div>
+  </div>
+
+  <!-- Recording tips -->
+  <h2>Recording Tips</h2>
+
+  <table>
+    <thead><tr><th>Setting</th><th>Recommendation</th></tr></thead>
+    <tbody>
+      <tr><td>Tool</td><td>Loom (loom.com) — free, records screen + webcam, instant shareable link. OBS works too.</td></tr>
+      <tr><td>Resolution</td><td>1080p, 30fps minimum</td></tr>
+      <tr><td>Mouse speed</td><td>Keep movements slow and deliberate — viewers need to follow where you click</td></tr>
+      <tr><td>Tab switches</td><td>Pause 1–2 seconds before switching tabs so the transition reads clearly on screen</td></tr>
+      <tr><td>Demo data</td><td>Use a pre-seeded account with 2–3 existing applications so the dashboard looks populated</td></tr>
+      <tr><td>Resume &amp; JD</td><td>Have a real PDF resume and a real job description ready to paste — AI output with real data looks far more impressive</td></tr>
+      <tr><td>Score ring</td><td>A match score of 65–80% looks most realistic and interesting to explain</td></tr>
+    </tbody>
+  </table>
+
+  <div class="tip-box">
+    <strong>Pro tip:</strong> Record yourself doing a dry run first (don't submit it). Watch it back at 1.5× speed and note where you hesitate or click too fast. The real recording will be significantly smoother.
+  </div>
+
+  <div class="page-nav">
+    <a href="04-deployment.html" class="nav-card">
+      <span class="nav-dir">← Previous</span>
+      <span>04 · Cloud Deployment</span>
+    </a>
+    <a href="06-slides.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>06 · Slide Deck Outline</span>
+    </a>
+  </div>
+</main>
+</body>
+</html>

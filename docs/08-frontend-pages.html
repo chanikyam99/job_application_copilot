@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>08 · HTML Pages — Co-Pilot Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🚀</span> Co-Pilot Guide</a>
+  <div class="nav-section">Build</div>
+  <nav>
+    <a href="01-setup.html">01 · Architecture &amp; Setup</a>
+    <a href="02-backend-core.html">02 · Database &amp; Models</a>
+    <a href="03-auth.html">03 · Auth &amp; Utilities</a>
+    <a href="04-agents.html">04 · Multi-Agent Pipeline</a>
+    <a href="05-routers.html">05 · API Routers</a>
+    <a href="06-frontend-css.html">06 · Frontend CSS</a>
+    <a href="07-frontend-js.html">07 · Frontend JavaScript</a>
+    <a href="08-frontend-pages.html" class="active">08 · HTML Pages</a>
+    <a href="09-running.html">09 · Running &amp; Debug</a>
+  </nav>
+  <div class="nav-section">Fixes Applied</div>
+  <nav>
+    <a href="10-bugs-fixed.html">10 · Bugs Fixed</a>
+    <a href="11-features-added.html">11 · Features Added</a>
+  </nav>
+  <div class="nav-section">Ship It</div>
+  <nav>
+    <a href="12-deployment.html">12 · Cloud Deployment</a>
+    <a href="13-video-script.html">13 · Video Script</a>
+    <a href="14-slides.html">14 · Slide Deck Outline</a>
+  </nav>
+  <div class="nav-section">───</div>
+  <nav>
+    <a href="index.html">🏠 Home</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 08</div>
+    <h1 class="page-title">Frontend HTML Pages</h1>
+    <p class="page-subtitle">Four pages form the complete UI: a login/signup screen, a dashboard, a creation wizard, and a results viewer. Each page is a self-contained module — no build step, no framework.</p>
+  </div>
+
+  <div class="done-box">
+    <div class="done-label">Bug fixes applied — API URLs corrected</div>
+    <p>The original guide contained several incorrect API URLs in the JavaScript examples. The source files have been corrected and the code shown below reflects the fixed versions. Specifically: the status PATCH now targets <code>/applications/${appId}/status</code>; the cover letter download uses <code>/applications/${appId}/download/cover-letter</code>; regenerate calls use the path parameter form <code>/applications/${appId}/regenerate/${section}</code>; and the section name values passed to regenerate are <code>fit_analysis</code>, <code>resume</code>, <code>cover_letter</code>, <code>interview</code>. See Section 10 for a full list of bugs fixed.</p>
+  </div>
+
+  <!-- OVERVIEW -->
+  <h2>Page Map</h2>
+  <p>The frontend is four plain HTML files. Each loads <code>js/config.js</code> as a plain script in <code>&lt;head&gt;</code> before importing <code>js/api.js</code> as an ES module. Navigation between pages is just <code>window.location.href</code>.</p>
+
+  <table>
+    <thead>
+      <tr><th>File</th><th>Route</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>index.html</code></td><td>/</td><td>Login &amp; signup — gateway to the app</td></tr>
+      <tr><td><code>dashboard.html</code></td><td>/dashboard.html</td><td>Application list with stats, filters, and cards</td></tr>
+      <tr><td><code>new-application.html</code></td><td>/new-application.html</td><td>3-step wizard: upload resume → job details → generating</td></tr>
+      <tr><td><code>application.html</code></td><td>/application.html?id=X</td><td>View all 4 AI artifacts in tabbed detail view</td></tr>
+    </tbody>
+  </table>
+
+  <div class="why-box">
+    <div class="why-label">WHY plain HTML files instead of a framework</div>
+    <p>The app has 4 distinct pages, each with completely different layout concerns. A framework like React would need routing, a build pipeline, and component boilerplate. Vanilla HTML gives us instant reloads, zero config, no <code>node_modules</code>, and pages that are trivially hostable from any static file server — including Python's built-in one. The only shared state is the JWT in localStorage.</p>
+  </div>
+
+  <!-- ─── PAGE 1: index.html ─────────────────────────────── -->
+  <h2><span class="step-num">1</span> frontend/index.html — Login &amp; Signup</h2>
+
+  <p>The entry point. A split-screen layout divides the viewport: the left panel is a hero/branding column that never scrolls; the right panel contains the auth form. A tab switcher toggles between Sign In and Create Account without any page reload.</p>
+
+  <h3>What happens on load</h3>
+  <p>The very first line of the <code>&lt;script type="module"&gt;</code> block calls <code>auth.isLoggedIn()</code>. If a valid token already exists in localStorage, the page immediately redirects to <code>dashboard.html</code> — the user never sees the form. This prevents the awkward back-button loop after login.</p>
+
+  <h3>Auth flow</h3>
+  <ol>
+    <li>User submits the login form → <code>POST /auth/login</code> returns <code>{ access_token }</code></li>
+    <li>Token is saved: <code>auth.setToken(data.access_token)</code></li>
+    <li>A second call to <code>GET /auth/me</code> fetches the user object and saves it: <code>auth.setUser(user)</code></li>
+    <li>Redirect to <code>dashboard.html</code></li>
+  </ol>
+  <p>Signup does the same two-step: create account, then immediately log in automatically so the user lands on the dashboard without an extra sign-in screen.</p>
+
+  <div class="why-box">
+    <div class="why-label">WHY fetch /auth/me after login instead of decoding the JWT</div>
+    <p>The JWT payload could theoretically be decoded client-side (it is base64), but that couples the frontend to the JWT structure. Calling <code>/auth/me</code> is one extra request, but it gives us a clean, typed user object (including <code>full_name</code>) and works even if the JWT format changes. The extra round-trip is invisible at login time.</p>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY type="module" on the script tag</div>
+    <p>ES module imports (<code>import { api, auth } from './js/api.js'</code>) only work inside <code>&lt;script type="module"&gt;</code>. As a bonus, module scripts are deferred automatically — they run after the DOM is parsed, eliminating the need for <code>DOMContentLoaded</code> listeners. All four pages use this pattern.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/index.html <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html" id="code-index"></code></pre>
+  </div>
+
+  <!-- ─── PAGE 2: dashboard.html ────────────────────────── -->
+  <h2><span class="step-num">2</span> frontend/dashboard.html — Applications List</h2>
+
+  <p>The main hub. After login, every session starts here. It shows a stats summary row, a status filter bar, and a responsive card grid of all job applications. A card click navigates to <code>application.html?id=X</code> for the full detail view.</p>
+
+  <h3>Data flow</h3>
+  <ol>
+    <li><code>requireAuth()</code> runs first — if no token, redirect to <code>index.html</code> immediately</li>
+    <li><code>loadApps()</code> calls <code>GET /applications/</code> and stores the response in <code>allApps</code></li>
+    <li>Stats counters are derived by filtering <code>allApps</code> in-memory (no extra API calls)</li>
+    <li><code>renderApps()</code> applies the active filter and rebuilds the grid via <code>innerHTML</code></li>
+  </ol>
+
+  <h3>Filter system</h3>
+  <p>Filter buttons each carry a <code>data-filter</code> attribute matching the backend status enum values (<code>not_yet</code>, <code>applied</code>, <code>interviewed</code>, <code>rejected</code>, <code>offer</code>). Clicking any button sets <code>activeFilter</code> and calls <code>renderApps()</code> — no network request needed since all data is already in memory.</p>
+
+  <div class="why-box">
+    <div class="why-label">WHY store all apps in memory and filter client-side</div>
+    <p>A typical user has fewer than 100 applications. Fetching once and filtering in-memory means every filter click is instantaneous. Server-side filtering via query params would add a round-trip (50–200ms) for each click with no benefit at this data scale. If the app ever scaled to thousands of records, you would add a debounced search and server-side pagination — but that is not this problem.</p>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY innerHTML for the card grid instead of createElement</div>
+    <p>Template literal HTML strings are readable, reviewable, and easy to edit. <code>document.createElement</code> for a card with 8 nested elements would be 40 lines of imperative code for every card. The security concern (XSS) is not relevant here because all data comes from our own authenticated API — we are not rendering user-supplied raw HTML from untrusted sources.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/dashboard.html <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html" id="code-dashboard"></code></pre>
+  </div>
+
+  <!-- ─── PAGE 3: new-application.html ─────────────────── -->
+  <h2><span class="step-num">3</span> frontend/new-application.html — Create Application</h2>
+
+  <p>A 3-step linear wizard. The steps are shown/hidden by toggling CSS classes — they are all in the DOM simultaneously. This avoids any state serialization between screens.</p>
+
+  <h3>Step 1: Resume Upload</h3>
+  <p>A drag-and-drop drop zone listens for <code>dragover</code>, <code>dragleave</code>, and <code>drop</code> events. Dropping a file or clicking to browse stores the file in a module-level variable. The zone shows the selected filename and enables the Next button.</p>
+
+  <h3>Step 2: Job Details</h3>
+  <p>A form collects job title, company name, and the full job description text. On submit, a <code>FormData</code> object is built containing both the file and the text fields, then sent as a multipart <code>POST /applications/</code> request. The API returns the new application ID immediately (before AI generation starts).</p>
+
+  <h3>Step 3: Generating</h3>
+  <p>Once the application record is created, a second call to <code>POST /applications/{id}/generate</code> kicks off the AI pipeline. The UI shows an animated progress display with step labels while the backend runs. When the response resolves (~15–30 s), the page redirects to <code>application.html?id={id}</code>.</p>
+
+  <div class="why-box">
+    <div class="why-label">WHY two separate API calls (create then generate)</div>
+    <p>Bundling file upload and AI generation into one request would mean a single HTTP connection held open for 30 seconds. Some proxies and browsers will time out. Splitting into two calls lets us: (1) confirm the upload succeeded instantly, (2) show a meaningful progress UI for the generation phase, and (3) recover gracefully if generation fails — the application record already exists and can be retried.</p>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY FormData for the upload instead of JSON</div>
+    <p>The PDF file is binary data. JSON can only carry text (base64 encoding adds ~33% size overhead and a conversion step). <code>FormData</code> sends the file as a binary stream alongside the text fields in a single multipart request — the natural format for file uploads. FastAPI's <code>File()</code> and <code>Form()</code> parameters receive it directly.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/new-application.html <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html" id="code-new-app"></code></pre>
+  </div>
+
+  <!-- ─── PAGE 4: application.html ─────────────────────── -->
+  <h2><span class="step-num">4</span> frontend/application.html — View Results</h2>
+
+  <p>The results page displays all four AI-generated artifacts in a tabbed layout. The page loads the full application record via <code>GET /applications/{id}</code>, then parses each artifact from the <code>draft</code> JSON field and populates the appropriate tab panel.</p>
+
+  <h3>Tab 1: Fit Analysis</h3>
+  <p>An SVG score ring (circumference 276.46 px — the exact value for a circle with r=44) renders the numeric match score as a colored arc. Below it, matching requirements are shown as green tags and missing ones as red tags. The score integer drives the ring's <code>stroke-dashoffset</code>.</p>
+
+  <h3>Tab 2: Resume</h3>
+  <p>A two-column diff view shows the original bullet points alongside the rewritten versions. Changed lines appear with the original struck through in red and the replacement in green. The agent returns a structured list of changes that drives this rendering.</p>
+
+  <h3>Tab 3: Cover Letter</h3>
+  <p>Plain text displayed in a readable container. A "Download .docx" button calls <code>GET /applications/{id}/download/cover-letter</code> which streams a binary response — the frontend uses <code>api.getBlob()</code>, creates a temporary object URL, and triggers a download link click programmatically. A "Regenerate" button calls <code>POST /applications/{id}/regenerate/cover_letter</code> (path parameter, not query string).</p>
+
+  <h3>Tab 4: Interview Prep</h3>
+  <p>Ten accordion cards, one per question. Each card shows the question type badge (behavioral, technical, situational), a sample answer, and a coaching tip. Clicking a card header toggles the answer panel open/closed via a CSS class.</p>
+
+  <div class="why-box">
+    <div class="why-label">WHY store all artifacts in a single JSON field (draft)</div>
+    <p>The four artifacts are always generated and consumed together. A single <code>draft</code> JSON column is simpler than four separate columns or a separate artifacts table. The structure can evolve (add fields, rename keys) without a database migration. Retrieval is one query, and the entire kit can be re-stored atomically when regenerated.</p>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY SVG for the score ring instead of a CSS border-radius trick</div>
+    <p>CSS circular progress requires layered pseudo-elements with <code>clip-path</code> or <code>conic-gradient</code> — the latter has limited browser support for animated transitions. An SVG <code>&lt;circle&gt;</code> with <code>stroke-dasharray</code> and <code>stroke-dashoffset</code> is the standard approach: it works in every modern browser, is easily animated with CSS transitions, and the math is clean (offset = circumference × (1 − score/100)).</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/application.html <span class="lang">html</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-html" id="code-app"></code></pre>
+  </div>
+
+  <!-- PAGE NAV -->
+  <div class="page-nav">
+    <a href="07-frontend-js.html" class="nav-card">
+      <span class="nav-dir">← Back</span>
+      <span>07 · Frontend JavaScript</span>
+    </a>
+    <a href="09-running.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>09 · Running &amp; Debug</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+
+// ─── index.html ──────────────────────────────────────────────────────────────
+document.getElementById('code-index').textContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Application Co-Pilot — Sign In</title>
+  <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"><\/script>
+</head>
+<body>
+<div class="auth-wrapper">
+
+  <!-- ── Left hero panel ── -->
+  <div class="auth-hero">
+    <h1 class="auth-hero-title">Your AI-powered<br>job application kit</h1>
+    <p style="color:#94a3b8; font-size:1rem; margin-top:12px;">
+      Upload resume. Paste JD. Get 4 tailored artifacts in 30 seconds.
+    </p>
+    <ul style="list-style:none; margin-top:32px; display:flex; flex-direction:column; gap:16px;">
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🎯</span>
+        <span><strong>Fit Analysis</strong> — Match score + requirements gap</span>
+      </li>
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">📝</span>
+        <span><strong>Resume Rewrite</strong> — JD keywords + stronger bullets</span>
+      </li>
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">✉️</span>
+        <span><strong>Cover Letter</strong> — 1 page, downloadable .docx</span>
+      </li>
+      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
+        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🎤</span>
+        <span><strong>Interview Prep</strong> — 10 Q&As from your resume</span>
+      </li>
+    </ul>
+  </div>
+
+  <!-- ── Right form panel ── -->
+  <div class="auth-form-panel">
+    <div class="auth-form-box">
+      <div style="font-size:1.3rem; font-weight:700; margin-bottom:32px;
+                  display:flex; align-items:center; gap:10px;">
+        <span style="background:var(--color-primary); width:40px; height:40px; border-radius:10px;
+                     display:flex; align-items:center; justify-content:center; font-size:1.2rem;">🚀</span>
+        Co-Pilot
+      </div>
+
+      <!-- Tab switcher -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login"  onclick="switchTab('login')">Sign In</button>
+        <button class="auth-tab"        id="tab-signup" onclick="switchTab('signup')">Create Account</button>
+      </div>
+
+      <!-- Login form -->
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Your password" required>
+        </div>
+        <div id="login-error" class="form-error" style="margin-bottom:12px;"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="login-btn">Sign In</button>
+      </form>
+
+      <!-- Signup form (hidden by default) -->
+      <form id="signup-form" class="hidden">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" placeholder="Alex Johnson">
+        </div>
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" placeholder="you@example.com" required>
+        </div>
+        <div class="form-group">
+          <label for="signup-password">
+            Password <span class="label-hint">min 8 characters</span>
+          </label>
+          <input type="password" id="signup-password" placeholder="Create a password"
+                 required minlength="8">
+        </div>
+        <div id="signup-error" class="form-error" style="margin-bottom:12px;"></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;" id="signup-btn">
+          Create Account
+        </button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { api, auth } from './js/api.js';
+
+  // If already logged in, skip the form entirely
+  if (auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+  function switchTab(tab) {
+    document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
+    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+    document.getElementById('login-form').classList.toggle('hidden',  tab !== 'login');
+    document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup');
+  }
+  window.switchTab = switchTab;   // expose for inline onclick
+
+  // ── Login ──────────────────────────────────────────────────────────────────
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn     = document.getElementById('login-btn');
+    const errorEl = document.getElementById('login-error');
+    errorEl.textContent = '';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Signing in...';
+    try {
+      const data = await api.post('/auth/login', {
+        email:    document.getElementById('login-email').value,
+        password: document.getElementById('login-password').value,
+      });
+      auth.setToken(data.access_token);
+      const user = await api.get('/auth/me');
+      auth.setUser(user);
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      errorEl.textContent = err.message;
+      btn.disabled  = false;
+      btn.textContent = 'Sign In';
+    }
+  });
+
+  // ── Signup ─────────────────────────────────────────────────────────────────
+  document.getElementById('signup-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn      = document.getElementById('signup-btn');
+    const errorEl  = document.getElementById('signup-error');
+    errorEl.textContent = '';
+    const password = document.getElementById('signup-password').value;
+    if (password.length < 8) {
+      errorEl.textContent = 'Password must be at least 8 characters';
+      return;
+    }
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Creating account...';
+    try {
+      // 1) Create account
+      await api.post('/auth/signup', {
+        email:     document.getElementById('signup-email').value,
+        password,
+        full_name: document.getElementById('signup-name').value || null,
+      });
+      // 2) Auto-login so the user lands on the dashboard immediately
+      const data = await api.post('/auth/login', {
+        email:    document.getElementById('signup-email').value,
+        password,
+      });
+      auth.setToken(data.access_token);
+      const user = await api.get('/auth/me');
+      auth.setUser(user);
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      errorEl.textContent = err.message;
+      btn.disabled    = false;
+      btn.textContent = 'Create Account';
+    }
+  });
+<\/script>
+</body>
+</html>`;
+hljs.highlightElement(document.getElementById('code-index'));
+
+// ─── dashboard.html ───────────────────────────────────────────────────────────
+document.getElementById('code-dashboard').textContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Job Application Co-Pilot</title>
+  <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"><\/script>
+</head>
+<body class="page-wrapper">
+
+<!-- ── Navbar ── -->
+<nav class="navbar">
+  <a href="dashboard.html" class="navbar-brand">
+    <div class="logo-icon">🚀</div>Co-Pilot
+  </a>
+  <div class="navbar-right">
+    <span class="navbar-user" id="user-name-display"></span>
+    <button class="btn btn-secondary btn-sm" id="logout-btn">Sign Out</button>
+  </div>
+</nav>
+
+<main class="container" style="flex:1;">
+
+  <!-- ── Page heading + New Application CTA ── -->
+  <div style="padding:32px 0 24px; display:flex; align-items:center;
+              justify-content:space-between; flex-wrap:wrap; gap:16px;">
+    <div>
+      <h1 style="font-size:2rem; font-weight:700;">My Applications</h1>
+      <p>Track your job application pipeline</p>
+    </div>
+    <a href="new-application.html" class="btn btn-primary btn-lg">+ New Application</a>
+  </div>
+
+  <!-- ── Stats row ── -->
+  <div class="dash-stats">
+    <div class="stat-card">
+      <div class="stat-value" id="stat-total">—</div>
+      <div class="stat-label">Total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-applied">—</div>
+      <div class="stat-label">Applied</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-interviewing">—</div>
+      <div class="stat-label">Interviewing</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-offers">—</div>
+      <div class="stat-label">Offers</div>
+    </div>
+  </div>
+
+  <!-- ── Filter bar ── -->
+  <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;">
+    <button class="filter-btn active" data-filter="all">All</button>
+    <button class="filter-btn" data-filter="not_yet">Not Applied</button>
+    <button class="filter-btn" data-filter="applied">Applied</button>
+    <button class="filter-btn" data-filter="interviewed">Interviewing</button>
+    <button class="filter-btn" data-filter="rejected">Rejected</button>
+    <button class="filter-btn" data-filter="offer">Offers</button>
+  </div>
+
+  <!-- ── Empty state ── -->
+  <div class="empty-state hidden" id="empty-state">
+    <div style="font-size:4rem; opacity:0.4;">📋</div>
+    <h3>No applications yet</h3>
+    <p>Create your first application to get started</p>
+    <a href="new-application.html" class="btn btn-primary" style="margin-top:16px;">
+      + New Application
+    </a>
+  </div>
+
+  <!-- ── Applications grid (populated by JS) ── -->
+  <div class="applications-grid" id="applications-grid"></div>
+
+</main>
+
+<script type="module">
+  import { api, auth, requireAuth, toast, formatDate } from './js/api.js';
+
+  requireAuth();   // redirect to index.html if no token
+
+  // Display user name in navbar
+  const user = auth.getUser();
+  if (user) document.getElementById('user-name-display').textContent =
+    user.full_name || user.email;
+
+  // Logout
+  document.getElementById('logout-btn').addEventListener('click', () => {
+    auth.clear();
+    window.location.href = 'index.html';
+  });
+
+  let allApps = [], activeFilter = 'all';
+
+  const STATUS_LABELS = {
+    not_yet:    'Not Applied',
+    applied:    'Applied',
+    interviewed:'Interviewing',
+    rejected:   'Rejected',
+    offer:      'Offer',
+  };
+
+  async function loadApps() {
+    try {
+      allApps = await api.get('/applications/');
+      // Compute stats from cached data — no extra requests
+      document.getElementById('stat-total').textContent       = allApps.length;
+      document.getElementById('stat-applied').textContent     = allApps.filter(a => a.status === 'applied').length;
+      document.getElementById('stat-interviewing').textContent= allApps.filter(a => a.status === 'interviewed').length;
+      document.getElementById('stat-offers').textContent      = allApps.filter(a => a.status === 'offer').length;
+      renderApps();
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  function renderApps() {
+    const filtered = activeFilter === 'all'
+      ? allApps
+      : allApps.filter(a => a.status === activeFilter);
+
+    const grid  = document.getElementById('applications-grid');
+    const empty = document.getElementById('empty-state');
+
+    if (!filtered.length) {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    grid.innerHTML = filtered.map(app => \`
+      <div class="app-card" onclick="location.href='application.html?id=\${app.id}'">
+        <div style="display:flex; align-items:flex-start; gap:14px; justify-content:space-between;">
+          <div style="display:flex; align-items:flex-start; gap:14px; flex:1;">
+            <div class="app-company-logo">\${(app.company || '?')[0].toUpperCase()}</div>
+            <div>
+              <div style="font-size:1rem; font-weight:600; color:var(--color-text);">\${app.job_title}</div>
+              <div style="font-size:0.875rem; color:var(--color-text-muted);">\${app.company}</div>
+            </div>
+          </div>
+          <span class="badge badge-\${app.status}">
+            \${STATUS_LABELS[app.status] || app.status}
+          </span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding-top:12px;
+                    border-top:1px solid var(--color-border); font-size:0.78rem;
+                    color:var(--color-text-muted); margin-top:12px;">
+          <span>\${formatDate(app.created_at)}</span>
+          <span>\${app.draft ? '● AI kit ready' : '○ No kit yet'}</span>
+        </div>
+      </div>
+    \`).join('');
+  }
+
+  // Wire up filter buttons
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeFilter = btn.dataset.filter;
+      renderApps();
+    });
+  });
+
+  loadApps();
+<\/script>
+</body>
+</html>`;
+hljs.highlightElement(document.getElementById('code-dashboard'));
+
+// ─── new-application.html ─────────────────────────────────────────────────────
+document.getElementById('code-new-app').textContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Application — Job Application Co-Pilot</title>
+  <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"><\/script>
+</head>
+<body class="page-wrapper">
+
+<nav class="navbar">
+  <a href="dashboard.html" class="navbar-brand"><div class="logo-icon">🚀</div>Co-Pilot</a>
+  <div class="navbar-right">
+    <a href="dashboard.html" class="btn btn-secondary btn-sm">← Back</a>
+  </div>
+</nav>
+
+<main class="container" style="flex:1; display:flex; align-items:center; justify-content:center; padding:40px 16px;">
+  <div class="wizard-card">
+
+    <!-- ── Step indicators ── -->
+    <div class="wizard-steps">
+      <div class="wizard-step active" id="step-ind-1">
+        <div class="step-circle">1</div><span>Resume</span>
+      </div>
+      <div class="wizard-step-line"></div>
+      <div class="wizard-step" id="step-ind-2">
+        <div class="step-circle">2</div><span>Job Details</span>
+      </div>
+      <div class="wizard-step-line"></div>
+      <div class="wizard-step" id="step-ind-3">
+        <div class="step-circle">3</div><span>Generating</span>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 1: Resume Upload ═════════════════════════════════════ -->
+    <div id="step-1">
+      <h2 style="margin-top:32px;">Upload Your Resume</h2>
+      <p style="margin-bottom:24px;">PDF only. Text-based PDFs work best — scanned images cannot be parsed.</p>
+
+      <div class="drop-zone" id="drop-zone">
+        <div class="drop-icon">📄</div>
+        <p class="drop-text">Drag &amp; drop your PDF here</p>
+        <p style="font-size:0.85rem; color:var(--color-text-muted);">or</p>
+        <label class="btn btn-secondary" style="cursor:pointer;">
+          Browse Files
+          <input type="file" id="file-input" accept=".pdf" style="display:none;">
+        </label>
+        <div id="file-name" style="margin-top:16px; font-size:0.875rem; color:var(--color-text-muted);"></div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; margin-top:24px;">
+        <button class="btn btn-primary" id="step1-next" disabled>Next: Job Details →</button>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 2: Job Details ════════════════════════════════════════ -->
+    <div id="step-2" class="hidden">
+      <h2 style="margin-top:32px;">Job Details</h2>
+      <p style="margin-bottom:24px;">Tell the agents what role you're targeting.</p>
+
+      <form id="job-form">
+        <div class="form-group">
+          <label for="job-title">Job Title <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="job-title" placeholder="e.g. Senior Data Analyst" required>
+        </div>
+        <div class="form-group">
+          <label for="company">Company <span style="color:#ef4444;">*</span></label>
+          <input type="text" id="company" placeholder="e.g. Stripe" required>
+        </div>
+        <div class="form-group">
+          <label for="job-description">
+            Job Description <span style="color:#ef4444;">*</span>
+            <span class="label-hint">Paste the full JD from LinkedIn or the careers page</span>
+          </label>
+          <textarea id="job-description" rows="10"
+                    placeholder="Paste the full job description here..." required></textarea>
+        </div>
+        <div id="job-form-error" class="form-error" style="margin-bottom:12px;"></div>
+        <div style="display:flex; gap:12px; justify-content:space-between;">
+          <button type="button" class="btn btn-secondary" id="step2-back">← Back</button>
+          <button type="submit"  class="btn btn-primary"  id="generate-btn">
+            Generate My Kit ✨
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ═══ STEP 3: Generating ═════════════════════════════════════════ -->
+    <div id="step-3" class="hidden">
+      <div style="text-align:center; padding:40px 0;">
+        <div style="font-size:3.5rem; margin-bottom:20px;">🤖</div>
+        <h2 style="margin-bottom:8px; border:none; padding:0;">Running AI Agents</h2>
+        <p style="margin-bottom:36px;">This takes 15–30 seconds. Please don't close the tab.</p>
+
+        <div class="progress-steps" id="progress-steps">
+          <div class="progress-step" id="prog-parse">
+            <span class="prog-icon">⏳</span>
+            <span>Parsing resume &amp; job description</span>
+          </div>
+          <div class="progress-step" id="prog-fit">
+            <span class="prog-icon">⏳</span>
+            <span>Agent 1 · Fit Analysis</span>
+          </div>
+          <div class="progress-step" id="prog-resume">
+            <span class="prog-icon">⏳</span>
+            <span>Agent 2 · Resume Rewrite</span>
+          </div>
+          <div class="progress-step" id="prog-cover">
+            <span class="prog-icon">⏳</span>
+            <span>Agent 3 · Cover Letter</span>
+          </div>
+          <div class="progress-step" id="prog-interview">
+            <span class="prog-icon">⏳</span>
+            <span>Agent 4 · Interview Prep</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<script type="module">
+  import { api, auth, requireAuth, toast } from './js/api.js';
+  requireAuth();
+
+  let selectedFile = null;
+
+  // ── Step navigation helpers ────────────────────────────────────────────────
+  function goToStep(n) {
+    [1, 2, 3].forEach(i => {
+      document.getElementById(\`step-\${i}\`).classList.toggle('hidden', i !== n);
+      document.getElementById(\`step-ind-\${i}\`).classList.toggle('active', i === n);
+    });
+  }
+
+  // ── Step 1: File selection ─────────────────────────────────────────────────
+  const dropZone   = document.getElementById('drop-zone');
+  const fileInput  = document.getElementById('file-input');
+  const fileNameEl = document.getElementById('file-name');
+  const nextBtn    = document.getElementById('step1-next');
+
+  function handleFile(file) {
+    if (!file || file.type !== 'application/pdf') {
+      toast('Please select a PDF file.', 'error');
+      return;
+    }
+    selectedFile = file;
+    fileNameEl.textContent = \`✓ \${file.name}\`;
+    nextBtn.disabled = false;
+  }
+
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', ()  => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop',      e  => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+  nextBtn.addEventListener('click', () => goToStep(2));
+
+  // ── Step 2: Back button ────────────────────────────────────────────────────
+  document.getElementById('step2-back').addEventListener('click', () => goToStep(1));
+
+  // ── Step 2: Submit → create application + generate kit ────────────────────
+  document.getElementById('job-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errorEl = document.getElementById('job-form-error');
+    errorEl.textContent = '';
+
+    const btn = document.getElementById('generate-btn');
+    btn.disabled  = true;
+    btn.innerHTML = '<span class="spinner"></span> Uploading...';
+    goToStep(3);
+
+    // Animate progress indicators sequentially while waiting
+    const steps  = ['prog-parse', 'prog-fit', 'prog-resume', 'prog-cover', 'prog-interview'];
+    let stepIndex = 0;
+    const ticker  = setInterval(() => {
+      if (stepIndex > 0)
+        document.getElementById(steps[stepIndex - 1]).querySelector('.prog-icon').textContent = '✅';
+      if (stepIndex < steps.length)
+        document.getElementById(steps[stepIndex]).querySelector('.prog-icon').textContent = '🔄';
+      stepIndex++;
+      if (stepIndex >= steps.length) clearInterval(ticker);
+    }, 4000);
+
+    try {
+      // 1) Upload resume + job details as multipart form
+      const form = new FormData();
+      form.append('resume_file', selectedFile);
+      form.append('job_title',   document.getElementById('job-title').value);
+      form.append('company',     document.getElementById('company').value);
+      form.append('jd_text',     document.getElementById('job-description').value);
+
+      const app = await api.postForm('/applications/', form);
+
+      // 2) Trigger the AI pipeline (takes 15-30 s)
+      await api.post(\`/applications/\${app.id}/generate\`, {});
+
+      clearInterval(ticker);
+      steps.forEach(id =>
+        document.getElementById(id).querySelector('.prog-icon').textContent = '✅'
+      );
+
+      // 3) Navigate to results
+      window.location.href = \`application.html?id=\${app.id}\`;
+    } catch (err) {
+      clearInterval(ticker);
+      toast(err.message, 'error');
+      goToStep(2);
+      btn.disabled  = false;
+      btn.textContent = 'Generate My Kit ✨';
+    }
+  });
+<\/script>
+</body>
+</html>`;
+hljs.highlightElement(document.getElementById('code-new-app'));
+
+// ─── application.html ─────────────────────────────────────────────────────────
+document.getElementById('code-app').textContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Application — Job Application Co-Pilot</title>
+  <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"><\/script>
+</head>
+<body class="page-wrapper">
+
+<nav class="navbar">
+  <a href="dashboard.html" class="navbar-brand"><div class="logo-icon">🚀</div>Co-Pilot</a>
+  <div class="navbar-right">
+    <a href="dashboard.html" class="btn btn-secondary btn-sm">← Dashboard</a>
+  </div>
+</nav>
+
+<main class="container" style="flex:1; padding-top:32px; padding-bottom:60px;">
+
+  <!-- ── Application header ── -->
+  <div class="app-header" style="display:flex; align-items:flex-start; justify-content:space-between;
+                                  flex-wrap:wrap; gap:16px; margin-bottom:32px;">
+    <div>
+      <div id="app-company" style="font-size:0.85rem; color:var(--color-text-muted); margin-bottom:4px;"></div>
+      <h1 id="app-job-title" style="font-size:1.75rem; font-weight:700; margin-bottom:12px;"></h1>
+      <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <select id="status-select" class="status-select">
+          <option value="not_yet">Not Applied</option>
+          <option value="applied">Applied</option>
+          <option value="interviewed">Interviewing</option>
+          <option value="rejected">Rejected</option>
+          <option value="offer">Offer Received</option>
+        </select>
+        <span id="status-saved" style="font-size:0.8rem; color:#10b981; opacity:0;">Saved ✓</span>
+      </div>
+    </div>
+    <button class="btn btn-danger btn-sm" id="delete-btn">Delete Application</button>
+  </div>
+
+  <!-- ── Tabs ── -->
+  <div class="tabs" style="display:flex; gap:4px; border-bottom:2px solid var(--color-border); margin-bottom:28px;">
+    <button class="tab-btn active" data-tab="fit">🎯 Fit Analysis</button>
+    <button class="tab-btn"        data-tab="resume">📝 Resume</button>
+    <button class="tab-btn"        data-tab="cover">✉️ Cover Letter</button>
+    <button class="tab-btn"        data-tab="interview">🎤 Interview Prep</button>
+  </div>
+
+  <!-- ═══ TAB 1: Fit Analysis ═══════════════════════════════════════════════ -->
+  <div id="tab-fit" class="tab-panel">
+    <div style="display:flex; gap:40px; align-items:flex-start; flex-wrap:wrap;">
+
+      <!-- Score ring -->
+      <div style="text-align:center; flex-shrink:0;">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="44" fill="none" stroke="#e2e8f0" stroke-width="10"/>
+          <circle id="score-ring" cx="60" cy="60" r="44" fill="none"
+                  stroke="#3b82f6" stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="276.46"
+                  stroke-dashoffset="276.46"
+                  transform="rotate(-90 60 60)"
+                  style="transition: stroke-dashoffset 1s ease;"/>
+        </svg>
+        <div id="score-text" style="font-size:2.2rem; font-weight:800; margin-top:4px;"></div>
+        <div style="font-size:0.8rem; color:var(--color-text-muted);">match score</div>
+      </div>
+
+      <!-- Requirements breakdown -->
+      <div style="flex:1; min-width:240px;">
+        <h3 style="margin-bottom:12px;">Requirements Match</h3>
+        <div style="margin-bottom:16px;">
+          <div style="font-size:0.8rem; font-weight:600; color:#16a34a; margin-bottom:8px;">
+            ✓ You have these
+          </div>
+          <div id="fit-matching" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem; font-weight:600; color:#dc2626; margin-bottom:8px;">
+            ✗ Gaps to address
+          </div>
+          <div id="fit-missing" style="display:flex; flex-wrap:wrap; gap:8px;"></div>
+        </div>
+        <div id="fit-summary" style="margin-top:20px; font-size:0.9rem;
+             color:var(--color-text-muted); line-height:1.7;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TAB 2: Resume ════════════════════════════════════════════════════ -->
+  <div id="tab-resume" class="tab-panel hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 style="margin:0;">Rewritten Resume</h3>
+      <button class="btn btn-secondary btn-sm" id="regen-resume">↺ Regenerate</button>
+    </div>
+    <div class="diff-view" id="resume-diff">
+      <!-- populated by JS: pairs of (original → rewritten) bullet points -->
+    </div>
+  </div>
+
+  <!-- ═══ TAB 3: Cover Letter ══════════════════════════════════════════════ -->
+  <div id="tab-cover" class="tab-panel hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+      <h3 style="margin:0;">Cover Letter</h3>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-secondary btn-sm" id="regen-cover">↺ Regenerate</button>
+        <button class="btn btn-primary   btn-sm" id="download-docx">⬇ Download .docx</button>
+      </div>
+    </div>
+    <div class="cover-letter-body" id="cover-letter-text"
+         style="white-space:pre-wrap; line-height:1.9; font-size:0.95rem;
+                background:var(--color-surface); border:1px solid var(--color-border);
+                border-radius:12px; padding:28px 32px;"></div>
+  </div>
+
+  <!-- ═══ TAB 4: Interview Prep ════════════════════════════════════════════ -->
+  <div id="tab-interview" class="tab-panel hidden">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 style="margin:0;">Interview Prep — 10 Questions</h3>
+      <button class="btn btn-secondary btn-sm" id="regen-interview">↺ Regenerate</button>
+    </div>
+    <div id="interview-accordion"></div>
+  </div>
+
+</main>
+
+<script type="module">
+  import { api, auth, requireAuth, toast } from './js/api.js';
+  requireAuth();
+
+  const params = new URLSearchParams(window.location.search);
+  const appId  = params.get('id');
+  if (!appId) window.location.href = 'dashboard.html';
+
+  let appData = null;
+
+  // ── Load application data ─────────────────────────────────────────────────
+  async function loadApp() {
+    try {
+      appData = await api.get(\`/applications/\${appId}\`);
+      document.getElementById('app-company').textContent  = appData.company;
+      document.getElementById('app-job-title').textContent = appData.job_title;
+      document.getElementById('status-select').value      = appData.status;
+      if (appData.draft) renderAllTabs(appData.draft);
+    } catch (err) {
+      toast(err.message, 'error');
+    }
+  }
+
+  // ── Status dropdown — PATCH /applications/{id}/status ─────────────────────
+  document.getElementById('status-select').addEventListener('change', async (e) => {
+    try {
+      await api.patch(\`/applications/\${appId}/status\`, { status: e.target.value });
+      const el = document.getElementById('status-saved');
+      el.style.opacity = '1';
+      setTimeout(() => el.style.opacity = '0', 2000);
+    } catch (err) { toast(err.message, 'error'); }
+  });
+
+  // ── Delete ────────────────────────────────────────────────────────────────
+  document.getElementById('delete-btn').addEventListener('click', async () => {
+    if (!confirm('Delete this application? This cannot be undone.')) return;
+    try {
+      await api.delete(\`/applications/\${appId}\`);
+      window.location.href = 'dashboard.html';
+    } catch (err) { toast(err.message, 'error'); }
+  });
+
+  // ── Tab switching ─────────────────────────────────────────────────────────
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('hidden'));
+      btn.classList.add('active');
+      document.getElementById(\`tab-\${btn.dataset.tab}\`).classList.remove('hidden');
+    });
+  });
+
+  // ── Render all artifact tabs ──────────────────────────────────────────────
+  function renderAllTabs(draft) {
+    if (draft.fit_analysis)  renderFit(draft.fit_analysis);
+    if (draft.resume_rewrite) renderResume(draft.resume_rewrite);
+    if (draft.cover_letter)  renderCoverLetter(draft.cover_letter);
+    if (draft.interview_qa)  renderInterview(draft.interview_qa);
+  }
+
+  // ── Tab 1: Fit Analysis ───────────────────────────────────────────────────
+  function renderFit(fit) {
+    const score = fit.score || 0;
+    const circumference = 276.46;
+    const offset = circumference * (1 - score / 100);
+    const ring = document.getElementById('score-ring');
+    // Animate the ring after a brief paint delay
+    setTimeout(() => ring.style.strokeDashoffset = offset, 100);
+    ring.style.stroke = score >= 70 ? '#10b981' : score >= 45 ? '#f59e0b' : '#ef4444';
+    document.getElementById('score-text').textContent = score + '%';
+
+    document.getElementById('fit-matching').innerHTML =
+      (fit.matching || []).map(r =>
+        \`<span style="background:#dcfce7; color:#166534; padding:4px 12px;
+                      border-radius:100px; font-size:0.8rem;">\${r}</span>\`
+      ).join('');
+
+    document.getElementById('fit-missing').innerHTML =
+      (fit.missing || []).map(r =>
+        \`<span style="background:#fee2e2; color:#991b1b; padding:4px 12px;
+                      border-radius:100px; font-size:0.8rem;">\${r}</span>\`
+      ).join('');
+
+    document.getElementById('fit-summary').textContent = fit.summary || '';
+  }
+
+  // ── Tab 2: Resume ─────────────────────────────────────────────────────────
+  function renderResume(rewrite) {
+    const container = document.getElementById('resume-diff');
+    const changes   = rewrite.changes || [];
+    container.innerHTML = changes.map(c => \`
+      <div class="diff-row" style="display:grid; grid-template-columns:1fr 1fr;
+           gap:16px; padding:16px; border-bottom:1px solid var(--color-border);">
+        <div style="font-size:0.88rem; color:#991b1b; text-decoration:line-through;
+                    background:#fff1f2; border-radius:8px; padding:12px;">
+          \${c.original}
+        </div>
+        <div style="font-size:0.88rem; color:#166534; background:#dcfce7;
+                    border-radius:8px; padding:12px;">
+          \${c.rewritten}
+        </div>
+      </div>
+    \`).join('');
+  }
+
+  // ── Tab 3: Cover Letter ───────────────────────────────────────────────────
+  function renderCoverLetter(cl) {
+    document.getElementById('cover-letter-text').textContent = typeof cl === 'string' ? cl : (cl.text || '');
+  }
+
+  // Download .docx — uses getBlob() because get() calls res.json() which fails on binary
+  document.getElementById('download-docx').addEventListener('click', async () => {
+    try {
+      const blob = await api.getBlob(\`/applications/\${appId}/download/cover-letter\`);
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = \`cover-letter-\${appId}.docx\`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { toast(err.message, 'error'); }
+  });
+
+  // ── Tab 4: Interview Prep ─────────────────────────────────────────────────
+  function renderInterview(prep) {
+    const questions = Array.isArray(prep) ? prep : (prep.questions || []);
+    const accordion = document.getElementById('interview-accordion');
+    accordion.innerHTML = questions.map((q, i) => \`
+      <div class="accordion-card" style="border:1px solid var(--color-border); border-radius:12px;
+           margin-bottom:12px; overflow:hidden;">
+        <button class="accordion-header" onclick="toggleAccordion(\${i})"
+                style="width:100%; text-align:left; padding:18px 20px; background:none;
+                       border:none; cursor:pointer; display:flex; align-items:center;
+                       justify-content:space-between; gap:16px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="background:#eff6ff; color:#1d4ed8; font-size:0.72rem; font-weight:700;
+                         padding:3px 10px; border-radius:100px; text-transform:uppercase;
+                         flex-shrink:0;">\${q.type}</span>
+            <span style="font-weight:600; font-size:0.95rem;">\${q.question}</span>
+          </div>
+          <span id="acc-icon-\${i}" style="font-size:1.2rem; flex-shrink:0;">+</span>
+        </button>
+        <div id="acc-body-\${i}" class="hidden"
+             style="padding:0 20px 20px; border-top:1px solid var(--color-border);">
+          <div style="margin-top:16px;">
+            <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase;
+                        color:var(--color-text-muted); margin-bottom:8px;">Sample Answer</div>
+            <p style="font-size:0.9rem; line-height:1.75;">\${q.answer}</p>
+          </div>
+          <div style="margin-top:16px; background:#fffbeb; border-left:3px solid #f59e0b;
+                      border-radius:0 8px 8px 0; padding:12px 16px;">
+            <div style="font-size:0.75rem; font-weight:700; color:#92400e;
+                        margin-bottom:4px;">💡 TIP</div>
+            <p style="font-size:0.85rem; color:#78350f; margin:0;">\${q.tip}</p>
+          </div>
+        </div>
+      </div>
+    \`).join('');
+  }
+
+  window.toggleAccordion = function(i) {
+    const body = document.getElementById(\`acc-body-\${i}\`);
+    const icon = document.getElementById(\`acc-icon-\${i}\`);
+    const open = !body.classList.contains('hidden');
+    body.classList.toggle('hidden', open);
+    icon.textContent = open ? '+' : '−';
+  };
+
+  // ── Regenerate buttons ────────────────────────────────────────────────────
+  // Section names: fit_analysis | resume | cover_letter | interview
+  // URL form: POST /applications/{id}/regenerate/{section}  (path param, not ?section=X)
+  async function regenerate(section, renderFn, draftKey) {
+    try {
+      toast('Regenerating...', 'info');
+      const data = await api.post(\`/applications/\${appId}/regenerate/\${section}\`, {});
+      renderFn(data.draft[draftKey]);
+      toast('Regenerated!', 'success');
+    } catch (err) { toast(err.message, 'error'); }
+  }
+
+  document.getElementById('regen-resume').addEventListener('click',
+    () => regenerate('resume', renderResume, 'resume_rewrite'));
+  document.getElementById('regen-cover').addEventListener('click',
+    () => regenerate('cover_letter', renderCoverLetter, 'cover_letter'));
+  document.getElementById('regen-interview').addEventListener('click',
+    () => regenerate('interview', renderInterview, 'interview_qa'));
+
+  loadApp();
+<\/script>
+</body>
+</html>`;
+hljs.highlightElement(document.getElementById('code-app'));
+</script>
+
+</body>
+</html>

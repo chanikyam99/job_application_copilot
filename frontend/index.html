@@ -5,47 +5,41 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Application Co-Pilot — Sign In</title>
   <link rel="stylesheet" href="css/main.css">
+  <script src="js/config.js"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
 <div class="auth-wrapper">
 
-  <!-- ── Left hero panel ── -->
+  <!-- Left hero panel -->
   <div class="auth-hero">
     <h1 class="auth-hero-title">Your AI-powered<br>job application kit</h1>
-    <p style="color:#94a3b8; font-size:1rem; margin-top:12px;">
-      Upload resume. Paste JD. Get 4 tailored artifacts in 30 seconds.
-    </p>
-    <ul style="list-style:none; margin-top:32px; display:flex; flex-direction:column; gap:16px;">
-      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
-        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
-                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🎯</span>
+    <p class="auth-hero-sub">Upload resume. Paste JD. Get 4 tailored artifacts in 30 seconds.</p>
+    <ul class="hero-features">
+      <li class="hero-feature">
+        <span class="hero-feature-icon"><i data-lucide="target"></i></span>
         <span><strong>Fit Analysis</strong> — Match score + requirements gap</span>
       </li>
-      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
-        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
-                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">📝</span>
+      <li class="hero-feature">
+        <span class="hero-feature-icon"><i data-lucide="file-text"></i></span>
         <span><strong>Resume Rewrite</strong> — JD keywords + stronger bullets</span>
       </li>
-      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
-        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
-                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">✉️</span>
+      <li class="hero-feature">
+        <span class="hero-feature-icon"><i data-lucide="mail"></i></span>
         <span><strong>Cover Letter</strong> — 1 page, downloadable .docx</span>
       </li>
-      <li style="display:flex; gap:12px; align-items:center; color:#cbd5e1;">
-        <span style="background:rgba(59,130,246,0.2); width:36px; height:36px; border-radius:8px;
-                     display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">🎤</span>
+      <li class="hero-feature">
+        <span class="hero-feature-icon"><i data-lucide="mic"></i></span>
         <span><strong>Interview Prep</strong> — 10 Q&As from your resume</span>
       </li>
     </ul>
   </div>
 
-  <!-- ── Right form panel ── -->
+  <!-- Right form panel -->
   <div class="auth-form-panel">
     <div class="auth-form-box">
-      <div style="font-size:1.3rem; font-weight:700; margin-bottom:32px;
-                  display:flex; align-items:center; gap:10px;">
-        <span style="background:var(--color-primary); width:40px; height:40px; border-radius:10px;
-                     display:flex; align-items:center; justify-content:center; font-size:1.2rem;">🚀</span>
+      <div class="auth-logo-mark">
+        <span class="logo-icon"><i data-lucide="zap"></i></span>
         Co-Pilot
       </div>
 
@@ -99,7 +93,6 @@
 <script type="module">
   import { api, auth } from './js/api.js';
 
-  // If already logged in, skip the form entirely
   if (auth.isLoggedIn()) window.location.href = 'dashboard.html';
 
   function switchTab(tab) {
@@ -108,16 +101,15 @@
     document.getElementById('login-form').classList.toggle('hidden',  tab !== 'login');
     document.getElementById('signup-form').classList.toggle('hidden', tab !== 'signup');
   }
-  window.switchTab = switchTab;   // expose for inline onclick
+  window.switchTab = switchTab;
 
-  // ── Login ──────────────────────────────────────────────────────────────────
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn     = document.getElementById('login-btn');
     const errorEl = document.getElementById('login-error');
     errorEl.textContent = '';
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Signing in...';
+    btn.innerHTML = '<span class="spinner"></span> Signing in…';
     try {
       const data = await api.post('/auth/login', {
         email:    document.getElementById('login-email').value,
@@ -134,7 +126,6 @@
     }
   });
 
-  // ── Signup ─────────────────────────────────────────────────────────────────
   document.getElementById('signup-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn      = document.getElementById('signup-btn');
@@ -146,15 +137,13 @@
       return;
     }
     btn.disabled = true;
-    btn.innerHTML = '<span class="spinner"></span> Creating account...';
+    btn.innerHTML = '<span class="spinner"></span> Creating account…';
     try {
-      // 1) Create account
       await api.post('/auth/signup', {
         email:     document.getElementById('signup-email').value,
         password,
         full_name: document.getElementById('signup-name').value || null,
       });
-      // 2) Auto-login so the user lands on the dashboard immediately
       const data = await api.post('/auth/login', {
         email:    document.getElementById('signup-email').value,
         password,
@@ -169,6 +158,8 @@
       btn.textContent = 'Create Account';
     }
   });
+
+  lucide.createIcons();
 </script>
 </body>
 </html>

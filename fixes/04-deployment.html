@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>04 · Cloud Deployment — Fixes Guide</title>
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  .arch-flow {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 6px;
+    margin: 20px 0 28px;
+  }
+  .arch-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px 18px; font-size: 0.85rem;
+    font-weight: 600; text-align: center;
+  }
+  .arch-box .sub { font-size: 0.72rem; color: var(--text-muted); font-weight: 400; margin-top: 3px; }
+  .arch-arrow { color: var(--text-muted); font-size: 1.2rem; }
+
+  .deploy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0 28px; }
+  .deploy-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px;
+  }
+  .deploy-card h3 { margin: 0 0 6px; font-size: 1rem; }
+  .deploy-card p  { margin: 0; font-size: 0.85rem; }
+
+  .checklist { list-style: none; margin: 0 0 24px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+  .checklist li {
+    display: flex; align-items: baseline; gap: 10px;
+    font-size: 0.9rem; color: var(--text-muted);
+    padding: 6px 0; border-bottom: 1px solid var(--border);
+  }
+  .checklist li:last-child { border-bottom: none; }
+  .checklist .check { color: #10b981; font-weight: 700; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <a href="index.html" class="sidebar-logo"><span class="icon">🔧</span> Fixes Guide</a>
+  <div class="nav-section">On This Laptop</div>
+  <nav>
+    <a href="index.html">🏠 Overview</a>
+    <a href="how-it-works.html">🔍 How It Works</a>
+    <a href="00-getting-started.html">00 · Get Started — New Laptop</a>
+    <a href="01-bugs-applied.html">01 · P0 Bugs — Already Fixed</a>
+    <a href="02-features-applied.html">02 · Features — Already Added</a>
+    <a href="03-todo-manual.html">03 · Still To Do Manually</a>
+    <a href="04-deployment.html" class="active">04 · Cloud Deployment</a>
+    <a href="05-video-script.html">05 · Video Script</a>
+    <a href="06-slides.html">06 · Slide Deck Outline</a>
+  </nav>
+  <div class="nav-section">Original Guide</div>
+  <nav>
+    <a href="../guide/index.html">← Back to main guide</a>
+  </nav>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <div class="page-tag">Section 04</div>
+    <h1 class="page-title">Cloud Deployment</h1>
+    <p class="page-subtitle">Deploy the FastAPI backend on Render with PostgreSQL, and serve the frontend from Vercel — fully live on the internet in under 30 minutes.</p>
+  </div>
+
+  <div class="done-box">
+    <div class="done-label">Code changes already made</div>
+    <p>The backend already has a <code>Procfile</code>, <code>psycopg2-binary</code> in requirements.txt, env-aware CORS, a fixed <code>migrations/env.py</code>, and a <code>config.js</code> that auto-detects localhost vs production. You do NOT need to add any new code — just follow the steps below.</p>
+  </div>
+
+  <!-- Architecture -->
+  <h2>Production Architecture</h2>
+
+  <div class="arch-flow">
+    <div class="arch-box">Browser<div class="sub">Any device</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box" style="border-color:#3b82f6;">Vercel<div class="sub">frontend/ (static)</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box" style="border-color:#7c3aed;">Render<div class="sub">FastAPI backend</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box" style="border-color:#059669;">PostgreSQL<div class="sub">Render DB add-on</div></div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-box" style="border-color:#d97706;">Groq API<div class="sub">LLaMA 3.3 70B</div></div>
+  </div>
+
+  <div class="deploy-grid">
+    <div class="deploy-card">
+      <h3>🖥️ Render (Backend)</h3>
+      <p>Runs the FastAPI process. Free tier available. Auto-deploys on every GitHub push. PostgreSQL add-on replaces SQLite.</p>
+    </div>
+    <div class="deploy-card">
+      <h3>🌐 Vercel (Frontend)</h3>
+      <p>Serves the four static HTML pages. Free forever for static sites. Drag-and-drop deploy — no CLI or build step needed.</p>
+    </div>
+  </div>
+
+  <div class="why-box">
+    <div class="why-label">WHY PostgreSQL instead of SQLite in production</div>
+    <p>Render's file system is <strong>ephemeral</strong> — it resets on every deploy. A SQLite <code>.db</code> file would be wiped every time you push new code. PostgreSQL is a managed external service that persists independently of your deploys.</p>
+  </div>
+
+  <!-- STEP 1 -->
+  <h2><span class="step-num">1</span> Push to GitHub First</h2>
+  <p>Render connects to your GitHub repository. Do this before setting up Render.</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal — project root <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">git add .
+git commit -m "add deployment config — Procfile, config.js, psycopg2"
+git push -u origin main</code></pre>
+  </div>
+
+  <div class="danger-box">
+    <div class="danger-label">Never commit backend/.env</div>
+    <p>Confirm <code>backend/.env</code> is in your <code>.gitignore</code> before pushing. Your Groq API key must not appear in the repository. The <code>.env.example</code> file (no real values) is safe to commit.</p>
+  </div>
+
+  <!-- STEP 2 -->
+  <h2><span class="step-num">2</span> Deploy Backend on Render</h2>
+
+  <ol>
+    <li>Go to <strong>dashboard.render.com</strong> → sign up with GitHub</li>
+    <li>Click <strong>New +</strong> → <strong>Web Service</strong></li>
+    <li>Connect your GitHub repository</li>
+    <li>Fill in these settings:</li>
+  </ol>
+
+  <table>
+    <thead><tr><th>Setting</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Name</td><td>job-copilot-api (or any name)</td></tr>
+      <tr><td>Root Directory</td><td><code>backend</code></td></tr>
+      <tr><td>Environment</td><td>Python 3</td></tr>
+      <tr><td>Build Command</td><td><code>pip install -r requirements.txt</code></td></tr>
+      <tr><td>Start Command</td><td><code>uvicorn main:app --host 0.0.0.0 --port $PORT</code></td></tr>
+      <tr><td>Instance Type</td><td>Free (for development/demo)</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Do NOT click Deploy yet</strong> — add environment variables first (Step 4).</p>
+
+  <!-- STEP 3 -->
+  <h2><span class="step-num">3</span> Add PostgreSQL Database</h2>
+
+  <ol>
+    <li>On the Render dashboard, click <strong>New +</strong> → <strong>PostgreSQL</strong></li>
+    <li>Name it <code>job-copilot-db</code> → choose <strong>Free</strong> plan → click <strong>Create Database</strong></li>
+    <li>After creation, click the database → find <strong>Internal Database URL</strong> → copy it</li>
+  </ol>
+
+  <div class="why-box">
+    <div class="why-label">Internal vs External URL</div>
+    <p>Use the <strong>Internal Database URL</strong> — traffic stays inside Render's network (faster). The External URL is only for connecting from your local machine to debug the production DB.</p>
+  </div>
+
+  <!-- STEP 4 -->
+  <h2><span class="step-num">4</span> Set Environment Variables on Render</h2>
+
+  <p>Go to your Web Service → <strong>Environment</strong> tab → add each variable:</p>
+
+  <table>
+    <thead><tr><th>Key</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>DATABASE_URL</code></td>
+        <td>The Internal Database URL from Step 3 (starts with <code>postgresql://</code>)</td>
+      </tr>
+      <tr>
+        <td><code>GROQ_API_KEY</code></td>
+        <td>Your key from console.groq.com</td>
+      </tr>
+      <tr>
+        <td><code>SECRET_KEY</code></td>
+        <td>Any random 32+ character string. Generate one:<br><code>python -c "import secrets; print(secrets.token_hex(32))"</code></td>
+      </tr>
+      <tr>
+        <td><code>ALLOWED_ORIGINS</code></td>
+        <td>Set to <code>*</code> for now — update to your Vercel URL after Step 7</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Click <strong>Save Changes</strong>, then click <strong>Deploy</strong>. Wait ~3 minutes for the first build.</p>
+
+  <!-- STEP 5 -->
+  <h2><span class="step-num">5</span> Run Database Migration</h2>
+
+  <p>After the first successful deploy, open Render Shell (top-right of your Web Service page) and run:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">Render Shell <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">alembic upgrade head</code></pre>
+  </div>
+
+  <p>You should see output ending with <code>Running upgrade ... -> initial schema</code>. This creates the <code>users</code>, <code>applications</code>, and <code>drafts</code> tables in PostgreSQL.</p>
+
+  <!-- STEP 6 -->
+  <h2><span class="step-num">6</span> Verify the Backend is Live</h2>
+
+  <p>Render shows your service URL at the top of the dashboard (e.g. <code>https://job-copilot-api.onrender.com</code>).</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">browser or curl <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash"># Should return {"status":"ok","docs":"/docs"}
+curl https://your-app.onrender.com/
+
+# Visit Swagger UI — confirms all routes are registered
+# https://your-app.onrender.com/docs</code></pre>
+  </div>
+
+  <div class="note-box">
+    <div class="note-label">Free tier cold starts</div>
+    <p>On Render's free tier, the service spins down after 15 minutes of inactivity. The first request after inactivity takes ~30–60 seconds to wake up. This is expected — paid tiers eliminate cold starts.</p>
+  </div>
+
+  <!-- STEP 7 -->
+  <h2><span class="step-num">7</span> Update config.js with Your Render URL</h2>
+
+  <p>Open <code>frontend/js/config.js</code> and replace the placeholder:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">frontend/js/config.js <span class="lang">js</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-javascript">window.BACKEND_URL = (
+  location.hostname === 'localhost' ||
+  location.hostname === '127.0.0.1'  ||
+  location.hostname === ''
+)
+  ? 'http://localhost:8000'
+  : 'https://job-copilot-api.onrender.com'; // ← your actual Render URL</code></pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">terminal <span class="lang">bash</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-bash">git add frontend/js/config.js
+git commit -m "set production backend URL"
+git push</code></pre>
+  </div>
+
+  <!-- STEP 8 -->
+  <h2><span class="step-num">8</span> Deploy Frontend on Vercel</h2>
+
+  <ol>
+    <li>Go to <strong>vercel.com</strong> → sign in with GitHub → click <strong>Add New… → Project</strong></li>
+    <li>Import your GitHub repository</li>
+    <li>Set <strong>Root Directory</strong> to <code>frontend</code> (click Edit → type frontend → Done)</li>
+    <li>Leave Framework Preset as <em>Other</em>, leave everything else as default</li>
+    <li>Click <strong>Deploy</strong> — Vercel builds in ~30 seconds and gives you a URL like <code>https://job-copilot.vercel.app</code></li>
+    <li>Every future <code>git push</code> automatically redeploys — no extra steps needed</li>
+  </ol>
+
+  <!-- STEP 9 -->
+  <h2><span class="step-num">9</span> Lock Down CORS</h2>
+
+  <p>Now that you have your Vercel URL, go back to Render → your Web Service → Environment → update <code>ALLOWED_ORIGINS</code>:</p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-file">Render — ALLOWED_ORIGINS value <span class="lang">text</span></span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code class="language-text">https://your-app.vercel.app</code></pre>
+  </div>
+
+  <p>Save and redeploy. The backend will now only accept requests from your Vercel domain.</p>
+
+  <!-- Common Errors -->
+  <h2>Common Deployment Errors</h2>
+
+  <table>
+    <thead><tr><th>Error</th><th>Root Cause</th><th>Fix</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Build fails: <code>No module named psycopg2</code></td>
+        <td><code>psycopg2-binary</code> not in requirements.txt</td>
+        <td>Confirm <code>psycopg2-binary==2.9.9</code> is in <code>backend/requirements.txt</code> and push again</td>
+      </tr>
+      <tr>
+        <td>500 on every request</td>
+        <td>Missing or wrong <code>DATABASE_URL</code></td>
+        <td>Check Render → Environment tab. Paste the Internal Database URL exactly</td>
+      </tr>
+      <tr>
+        <td><code>relation "users" does not exist</code></td>
+        <td>Alembic migration was not run</td>
+        <td>Open Render Shell → run <code>alembic upgrade head</code></td>
+      </tr>
+      <tr>
+        <td>CORS error in browser</td>
+        <td><code>ALLOWED_ORIGINS</code> doesn't match Vercel domain</td>
+        <td>Set exactly <code>https://your-app.netlify.app</code> (no trailing slash). Redeploy.</td>
+      </tr>
+      <tr>
+        <td>Frontend still calls localhost:8000</td>
+        <td><code>config.js</code> has placeholder URL</td>
+        <td>Update with real Render URL, commit, and re-drop frontend folder on Vercel</td>
+      </tr>
+      <tr>
+        <td>Swagger shows no routes</td>
+        <td>Root Directory not set to <code>backend</code></td>
+        <td>Render Settings → Root Directory → <code>backend</code> → Manual Deploy</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Final Checklist -->
+  <h2>Deployment Checklist</h2>
+
+  <ul class="checklist">
+    <li><span class="check">✓</span> Code pushed to GitHub with <code>.env</code> excluded</li>
+    <li><span class="check">✓</span> Render Web Service created, Root Directory = <code>backend</code></li>
+    <li><span class="check">✓</span> PostgreSQL add-on created and Internal URL copied</li>
+    <li><span class="check">✓</span> <code>DATABASE_URL</code>, <code>GROQ_API_KEY</code>, <code>SECRET_KEY</code> set on Render</li>
+    <li><span class="check">✓</span> Render first deploy successful</li>
+    <li><span class="check">✓</span> <code>alembic upgrade head</code> run in Render Shell</li>
+    <li><span class="check">✓</span> <code>https://your-app.onrender.com/docs</code> shows Swagger UI</li>
+    <li><span class="check">✓</span> <code>config.js</code> updated with Render URL and pushed</li>
+    <li><span class="check">✓</span> Frontend folder deployed on Vercel</li>
+    <li><span class="check">✓</span> <code>ALLOWED_ORIGINS</code> updated to Vercel URL on Render</li>
+    <li><span class="check">✓</span> End-to-end test: sign up → upload resume → generate kit → download .docx</li>
+  </ul>
+
+  <div class="page-nav">
+    <a href="03-todo-manual.html" class="nav-card">
+      <span class="nav-dir">← Previous</span>
+      <span>03 · Still To Do Manually</span>
+    </a>
+    <a href="05-video-script.html" class="nav-card next">
+      <span class="nav-dir">→ Next</span>
+      <span>05 · Video Script</span>
+    </a>
+  </div>
+</main>
+
+<script>
+hljs.highlightAll();
+function copyCode(btn) {
+  const code = btn.closest('.code-block').querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = '✓ Copied!';
+    btn.style.color = '#10b981';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

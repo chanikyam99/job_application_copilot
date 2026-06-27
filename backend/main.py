@@ -1,25 +1,29 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import engine, Base
 import models  # noqa: F401 — import registers all ORM models with SQLAlchemy
 from routers import auth_router, applications_router
 
-# Creates all tables defined in models.py on startup.
-# Safe to run every time — only creates tables that don't exist yet.
-# For schema CHANGES after first run, use Alembic migrations instead.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Job Application Co-Pilot API",
     description="AI-powered multi-agent job application assistant",
     version="1.0.0",
-    docs_url="/docs",    # Swagger UI: http://localhost:8000/docs
-    redoc_url="/redoc",  # ReDoc:      http://localhost:8000/redoc
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
+
+# ALLOWED_ORIGINS env var: comma-separated list of frontend origins.
+# Example: "https://your-app.onrender.com,https://your-app.netlify.app"
+# Defaults to "*" for local dev — always set explicitly in production.
+_raw_origins = os.getenv("ALLOWED_ORIGINS", "*")
+allowed_origins = [o.strip() for o in _raw_origins.split(",")] if _raw_origins != "*" else ["*"]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # Replace with your frontend URL in production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
